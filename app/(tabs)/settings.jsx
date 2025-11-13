@@ -1,30 +1,30 @@
 import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { useApp } from '../contexts/AppContext';
 
 export default function Settings() {
   const router = useRouter();
+  const { isDarkMode, toggleDarkMode, language, setLanguage, t, theme } = useApp();
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
   const [autoSync, setAutoSync] = useState(false);
   const [analytics, setAnalytics] = useState(true);
 
   const SettingsSection = ({ title, children }) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={[styles.section, { backgroundColor: theme.colors.background }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>{title}</Text>
       {children}
     </View>
   );
 
   const SettingsRow = ({ title, subtitle, onPress, hasSwitch, value, onValueChange }) => (
     <TouchableOpacity
-      style={styles.row}
+      style={[styles.row, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}
       onPress={hasSwitch ? undefined : onPress}
       activeOpacity={hasSwitch ? 1 : 0.7}
     >
       <View style={styles.rowContent}>
-        <Text style={styles.rowTitle}>{title}</Text>
-        {subtitle && <Text style={styles.rowSubtitle}>{subtitle}</Text>}
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{title}</Text>
+        {subtitle && <Text style={[styles.rowSubtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>}
       </View>
       {hasSwitch ? (
         <Switch
@@ -34,57 +34,71 @@ export default function Settings() {
           thumbColor={value ? '#000000' : '#666666'}
         />
       ) : (
-        <Text style={styles.rowArrow}>›</Text>
+        <Text style={[styles.rowArrow, { color: theme.colors.textSecondary }]}>›</Text>
       )}
     </TouchableOpacity>
   );
 
+  const handleToggleDarkMode = () => {
+    toggleDarkMode();
+  };
+
+  const handleToggleLanguage = () => {
+    // Toggle between English and Chinese
+    const newLang = language === 'en' ? 'zh' : 'en';
+    setLanguage(newLang);
+  };
+
+  const getLanguageSubtitle = () => {
+    return language === 'en' ? t('englishUS') : t('chinese');
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+        <Text style={[styles.title, { color: theme.colors.text }]}>{t('settings')}</Text>
       </View>
 
-      <View style={styles.content}>
-        <SettingsSection title="Preferences">
+      <View style={[styles.content, { backgroundColor: theme.colors.background }]}>
+        <SettingsSection title={t('preferences')}>
           <SettingsRow
-            title="Dark Mode"
-            subtitle="Use dark theme throughout the app"
+            title={t('darkMode')}
+            subtitle={t('darkModeDesc')}
             hasSwitch
-            value={darkMode}
-            onValueChange={setDarkMode}
+            value={isDarkMode}
+            onValueChange={handleToggleDarkMode}
           />
           <SettingsRow
-            title="Application Language"
-            subtitle="English (US)"
-            onPress={() => {}}
+            title={t('appLanguage')}
+            subtitle={getLanguageSubtitle()}
+            onPress={handleToggleLanguage}
           />
           <SettingsRow
-            title="Output Format"
-            subtitle="Plain Text"
+            title={t('outputFormat')}
+            subtitle={t('plainText')}
             onPress={() => {}}
           />
         </SettingsSection>
 
-        <SettingsSection title="Privacy & Security">
+        <SettingsSection title={t('privacySecurity')}>
           <SettingsRow
-            title="Analytics"
-            subtitle="Help improve the app"
+            title={t('analytics')}
+            subtitle={t('analyticsDesc')}
             hasSwitch
             value={analytics}
             onValueChange={setAnalytics}
           />
         </SettingsSection>
 
-        <SettingsSection title="About">
+        <SettingsSection title={t('about')}>
           <SettingsRow
-            title="About Team"
-            subtitle="Meet the developers"
+            title={t('aboutTeam')}
+            subtitle={t('aboutTeamDesc')}
             onPress={() => router.push('/about')}
           />
           <SettingsRow
-            title="App Version"
-            subtitle="Version 1.0.0"
+            title={t('appVersion')}
+            subtitle={t('version')}
             onPress={() => {}}
           />
         </SettingsSection>
@@ -96,18 +110,15 @@ export default function Settings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   header: {
     paddingHorizontal: 24,
     paddingVertical: 32,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000000',
   },
   content: {
     flex: 1,
@@ -118,7 +129,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(0, 0, 0, 0.6)',
     paddingHorizontal: 24,
     paddingVertical: 12,
     textTransform: 'uppercase',
@@ -129,24 +139,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   rowContent: {
     flex: 1,
   },
   rowTitle: {
     fontSize: 16,
-    color: '#000000',
     marginBottom: 2,
   },
   rowSubtitle: {
     fontSize: 14,
-    color: 'rgba(0, 0, 0, 0.6)',
   },
   rowArrow: {
     fontSize: 20,
-    color: 'rgba(0, 0, 0, 0.4)',
   },
 });

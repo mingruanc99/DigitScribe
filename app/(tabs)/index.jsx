@@ -2,9 +2,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'rea
 import { useRouter } from 'expo-router';
 import { useState, useRef } from 'react';
 import HandwritingCanvas from '../components/HandwritingCanvas';
+import { recognizeHandwriting } from '../services/ServerConnection';
+import { useApp } from '../contexts/AppContext';
 
 export default function Home() {
   const router = useRouter();
+  const { t, theme } = useApp();
   const [isRecognizing, setIsRecognizing] = useState(false);
   const canvasRef = useRef(null);
 
@@ -16,40 +19,47 @@ export default function Home() {
 
   const handleRecognize = async () => {
     if (!canvasRef.current) {
-      Alert.alert('Error', 'Canvas not ready');
+      Alert.alert(t('error'), t('canvasNotReady'));
       return;
     }
 
     const canvasData = canvasRef.current.getCanvasData();
 
     if (!canvasData.paths || canvasData.paths.length === 0) {
-      Alert.alert('Notice', 'Please write something first');
+      Alert.alert('Notice', t('writeSomething'));
       return;
     }
 
     setIsRecognizing(true);
 
     try {
-      // Simulate recognition process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Send to server for recognition
+      const result = await recognizeHandwriting(canvasData);
 
-      const mockResult = {
-        recognizedText: "This is a sample of handwritten text that has been processed by our AI recognition system.",
-        confidence: 94,
-        processingTime: "1.2s",
-        language: "English",
-        wordCount: 19,
-        originalPaths: canvasData.paths,
-        bounds: canvasData.bounds
-      };
-
-      router.push({
-        pathname: '/result',
-        params: { result: JSON.stringify(mockResult) }
-      });
+      if (result.success) {
+        // Navigate to result page with real data
+        router.push({
+          pathname: '/result',
+          params: {
+            result: JSON.stringify({
+              recognizedText: result.predicted_text,
+              confidence: Math.round(result.confidence * 100),
+              processingTime: t('processing'),
+              language: "Detected",
+              wordCount: result.predicted_text.toString().length,
+              originalPaths: canvasData.paths,
+              bounds: canvasData.bounds,
+              resultId: result.result_id
+            })
+          }
+        });
+      } else {
+        Alert.alert(t('recognitionError'), result.error || t('recognitionFailed'));
+      }
 
     } catch (error) {
-      Alert.alert('Error', 'Recognition failed. Please try again.');
+      console.error('Recognition error:', error);
+      Alert.alert(t('error'), t('recognitionFailed'));
     } finally {
       setIsRecognizing(false);
     }
@@ -101,17 +111,17 @@ export default function Home() {
             activeOpacity={0.7}
           >
             <Text style={styles.recognizeButtonText}>
-              {isRecognizing ? "Processing..." : "Recognize"}
+              {isRecognizing ? t('processing') : t('recognize')}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Instructions */}
         <View style={styles.instructions}>
-          <Text style={styles.instructionTitle}>How to use:</Text>
-          <Text style={styles.instructionText}>1. Write text in the box above</Text>
-          <Text style={styles.instructionText}>2. Tap "Recognize" to process</Text>
-          <Text style={styles.instructionText}>3. View results on the next screen</Text>
+          <Text style={styles.instructionTitle}>{t('howToUse')}</Text>
+          <Text style={styles.instructionText}>{t('step1')}</Text>
+          <Text style={styles.instructionText}>{t('step2')}</Text>
+          <Text style={styles.instructionText}>{t('step3')}</Text>
         </View>
       </View>
     </ScrollView>

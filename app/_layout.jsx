@@ -1,24 +1,42 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { AppProvider, useApp } from "./contexts/AppContext";
+import { View, ActivityIndicator } from "react-native";
 
-export default function RootLayout() {
+// Loading component while preferences load
+function LoadingScreen() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+      <ActivityIndicator size="large" color="#000000" />
+    </View>
+  );
+}
+
+// Main layout component that uses the app context
+function RootLayoutContent() {
+  const { isDarkMode, isLoading, t } = useApp();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: isDarkMode ? '#000000' : '#ffffff',
             borderBottomWidth: 1,
-            borderBottomColor: '#e5e5e5',
+            borderBottomColor: isDarkMode ? '#333333' : '#e5e5e5',
           },
-          headerTintColor: '#000000',
+          headerTintColor: isDarkMode ? '#ffffff' : '#000000',
           headerTitleStyle: {
             fontWeight: '600',
             fontSize: 18,
           },
           contentStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: isDarkMode ? '#000000' : '#ffffff',
           },
         }}
       >
@@ -33,7 +51,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="result"
           options={{
-            title: 'Recognition Result',
+            title: t('recognitionResult'),
             presentation: 'card'
           }}
         />
@@ -47,18 +65,26 @@ export default function RootLayout() {
         <Stack.Screen
           name="about"
           options={{
-            title: 'About Team',
+            title: t('aboutTeam'),
             presentation: 'card'
           }}
         />
         <Stack.Screen
           name="result-detail"
           options={{
-            title: 'Result Details',
+            title: t('resultDetails'),
             presentation: 'card'
           }}
         />
       </Stack>
     </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppProvider>
+      <RootLayoutContent />
+    </AppProvider>
   );
 }
