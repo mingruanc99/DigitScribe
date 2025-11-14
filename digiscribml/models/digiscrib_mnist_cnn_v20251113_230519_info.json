@@ -1,0 +1,7 @@
+{
+  "model_name": "digiscrib_mnist_cnn_v20251113_230519",
+  "timestamp": "2025-11-13T23:05:19.148100",
+  "test_accuracy": 0.9888333082199097,
+  "test_loss": 0.03760306537151337,
+  "total_params": 93322
+}
