@@ -115,7 +115,7 @@ export default function Index() {
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>✍️</Text>
           </View>
-          <Text style={styles.appTitle}>Written.ai</Text>
+          <Text style={styles.appTitle}>DigitScribe</Text>
           <Text style={styles.appSubtitle}>AI-Powered Handwriting Recognition</Text>
         </Animated.View>
 
@@ -314,7 +314,7 @@ export function IndexWithoutSafeArea() {
           <View style={stylesAlt.logoCircle}>
             <Text style={stylesAlt.logoText}>✍️</Text>
           </View>
-          <Text style={stylesAlt.appTitle}>Written.ai</Text>
+          <Text style={stylesAlt.appTitle}>DigitScribe</Text>
           <Text style={stylesAlt.appSubtitle}>AI-Powered Handwriting Recognition</Text>
         </View>
 

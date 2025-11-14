@@ -4,7 +4,7 @@
 export const translations = {
   en: {
     // Home/Index Page
-    appTitle: 'Written.ai',
+    appTitle: 'DigitScribe',
     appSubtitle: 'AI-Powered Handwriting Recognition',
     writeHere: 'Write Here',
     useFinger: 'Use your finger or stylus to write naturally',
@@ -80,7 +80,7 @@ export const translations = {
   },
   zh: {
     // Home/Index Page
-    appTitle: 'Written.ai',
+    appTitle: 'DigitScribe',
     appSubtitle: 'AI智能手写识别',
     writeHere: '在这里书写',
     useFinger: '使用手指或手写笔自然书写',

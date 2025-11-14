@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { View, StyleSheet, PanResponder, Dimensions, Platform } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { captureRef } from 'react-native-view-shot';
+//import { captureRef } from 'react-native-view-shot';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -13,7 +13,6 @@ const HandwritingCanvas = forwardRef(({
   style
 }, ref) => {
   const [paths, setPaths] = useState([]);
-  const [currentPath, setCurrentPath] = useState('');
   const [isDrawing, setIsDrawing] = useState(false);
   const canvasRef = useRef(null);
   const pathRef = useRef('');
@@ -22,7 +21,6 @@ const HandwritingCanvas = forwardRef(({
   useImperativeHandle(ref, () => ({
     clearCanvas: () => {
       setPaths([]);
-      setCurrentPath('');
       pathRef.current = '';
     },
     getCanvasData: () => {
@@ -32,20 +30,20 @@ const HandwritingCanvas = forwardRef(({
         canvasSize: { width: screenWidth - 32, height: 300 }
       };
     },
-    captureCanvas: async (options = {}) => {
-      try {
-        const uri = await captureRef(canvasRef, {
-          format: 'png',
-          quality: 0.9,
-          result: 'tmpfile',
-          ...options
-        });
-        return { success: true, uri };
-      } catch (error) {
-        console.error('Screenshot capture error:', error);
-        return { success: false, error: error.message };
-      }
-    }
+    // captureCanvas: async (options = {}) => {
+    //   try {
+    //     const uri = await captureRef(canvasRef, {
+    //       format: 'png',
+    //       quality: 0.9,
+    //       result: 'tmpfile',
+    //       ...options
+    //     });
+    //     return { success: true, uri };
+    //   } catch (error) {
+    //     console.error('Screenshot capture error:', error);
+    //     return { success: false, error: error.message };
+    //   }
+    // }
   }));
 
   useEffect(() => {
@@ -61,7 +59,6 @@ const HandwritingCanvas = forwardRef(({
     onPanResponderGrant: (evt) => {
       const { locationX, locationY } = evt.nativeEvent;
       pathRef.current = `M ${locationX} ${locationY}`;
-      setCurrentPath(pathRef.current);
       setIsDrawing(true);
 
       if (onStrokeStart) {
@@ -72,7 +69,18 @@ const HandwritingCanvas = forwardRef(({
     onPanResponderMove: (evt) => {
       const { locationX, locationY } = evt.nativeEvent;
       pathRef.current += ` L ${locationX} ${locationY}`;
-      setCurrentPath(pathRef.current);
+
+      // Update the last path in the array with the current drawing
+      setPaths(prevPaths => {
+        const newPaths = [...prevPaths];
+        // If we're drawing, update the last path, otherwise add new one
+        if (isDrawing && newPaths.length > 0) {
+          newPaths[newPaths.length - 1] = pathRef.current;
+        } else {
+          newPaths.push(pathRef.current);
+        }
+        return newPaths;
+      });
 
       if (onStrokeMove) {
         onStrokeMove({ x: locationX, y: locationY });
@@ -80,11 +88,6 @@ const HandwritingCanvas = forwardRef(({
     },
 
     onPanResponderRelease: () => {
-      if (pathRef.current && pathRef.current.length > 5) {
-        setPaths(prevPaths => [...prevPaths, pathRef.current]);
-      }
-
-      setCurrentPath('');
       pathRef.current = '';
       setIsDrawing(false);
 
@@ -97,9 +100,7 @@ const HandwritingCanvas = forwardRef(({
   const getBounds = () => {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-    const allPaths = [...paths, currentPath].filter(Boolean);
-
-    allPaths.forEach(path => {
+    paths.forEach(path => {
       const matches = path.match(/[ML]\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/g);
       if (matches) {
         matches.forEach(match => {
@@ -126,7 +127,7 @@ const HandwritingCanvas = forwardRef(({
           style={styles.svg}
           viewBox={`0 0 ${screenWidth - 32} 300`}
         >
-          {/* Render all completed paths */}
+          {/* Render all paths - including current drawing */}
           {paths.map((path, index) => (
             <Path
               key={index}
@@ -138,18 +139,6 @@ const HandwritingCanvas = forwardRef(({
               strokeLinejoin="round"
             />
           ))}
-
-          {/* Render current drawing path */}
-          {currentPath ? (
-            <Path
-              d={currentPath}
-              stroke="#000000"
-              strokeWidth={3}
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ) : null}
         </Svg>
       </View>
     </View>
