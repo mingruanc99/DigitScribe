@@ -32,7 +32,7 @@ export default function SignIn() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Welcome to Written.ai</Text>
+        <Text style={styles.title}>Welcome to DigitScribe</Text>
         <Text style={styles.subtitle}>Start writing with just a username</Text>
       </View>
 

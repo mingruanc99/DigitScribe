@@ -48,7 +48,7 @@ export default function AboutTeam() {
       <View style={styles.header}>
         <Text style={styles.title}>About Team</Text>
         <Text style={styles.subtitle}>
-          Meet the passionate team behind Written.ai
+          Meet the passionate team behind DigitScribe
         </Text>
       </View>
 
@@ -71,7 +71,7 @@ export default function AboutTeam() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Written.ai Version 1.0.0
+            DigitScribe Version 1.0.0
           </Text>
           <Text style={styles.footerSubtext}>
             Built with React Native & Expo

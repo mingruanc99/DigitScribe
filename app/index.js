@@ -122,7 +122,16 @@ export default function Index() {
         {/* Features preview */}
         <Animated.View style={[
           styles.featuresSection,
-          { opacity: Animated.add(fadeAnim, new Animated.Value(0)), transform: [{ translateY: Animated.add(slideAnim, new Animated.Value(30)) }] }
+          {
+            opacity: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 1]
+            }),
+            transform: [{ translateY: slideAnim.interpolate({
+              inputRange: [0, 50],
+              outputRange: [30, 0]
+            })}]
+          }
         ]}>
           <View style={styles.featureItem}>
             <Text style={styles.featureIcon}>✎</Text>

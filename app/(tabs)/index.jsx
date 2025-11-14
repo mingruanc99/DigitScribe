@@ -73,7 +73,7 @@ export default function Home() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Written.ai</Text>
+        <Text style={styles.title}>DigitScribe</Text>
         <Text style={styles.subtitle}>AI-Powered Handwriting Recognition</Text>
       </View>
 
