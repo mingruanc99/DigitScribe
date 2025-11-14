@@ -1,19 +1,11 @@
-/**
- * Server Connection Service for React Native
- * Connect your mobile app to your server through a single IP address
- *
- * 🔧 CONFIGURATION:
- * Replace YOUR_SERVER_IP with your actual server IP address
- *
- * Example: '192.168.1.100' or 'your-domain.com'
- */
+
 
 // ================== CONFIGURATION ==================
 // REPLACE WITH YOUR SERVER IP ADDRESS
 const SERVER_IP = '10.63.91.4'; 
 
 // If your server uses a custom port, change this (default: 5000)
-const SERVER_PORT = 8080;
+const SERVER_PORT = '5000';
 // ================== BASE URL ==================
 // Base API URL - automatically constructed from your IP and port
 const BASE_URL = `http://${SERVER_IP}:${SERVER_PORT}/api`;
@@ -23,7 +15,7 @@ const BASE_URL = `http://${SERVER_IP}:${SERVER_PORT}/api`;
 class ServerConnectionService {
   constructor() {
     this.baseURL = BASE_URL;
-    this.timeout = 30000; // 30 seconds
+    this.timeout = 20000; // 20 seconds
   }
 
   /**
@@ -48,7 +40,7 @@ class ServerConnectionService {
    */
   async recognizeHandwriting(handwritingData) {
     try {
-      const response = await fetch(`${this.baseURL}/recognize`, {
+      const response = await fetch(`${this.baseURL}/predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
