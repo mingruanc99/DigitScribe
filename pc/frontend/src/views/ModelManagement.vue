@@ -181,79 +181,288 @@
       </div>
     </div>
 
-    <!-- Create Model Modal -->
+    <!-- Create Model Wizard -->
     <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Create New Model</h3>
-          <button class="modal-close" @click="showCreateModal = false">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Model Name</label>
-            <input 
-              v-model="newModel.name" 
-              type="text" 
-              placeholder="Enter model name"
-              class="form-input"
-            >
+      <div class="modal-content wizard-content" @click.stop>
+        <!-- Step 1: Basic Information -->
+        <div v-if="currentStep === 1" class="wizard-step">
+          <div class="modal-header">
+            <h3>Create New Model - Basic Information</h3>
+            <button class="modal-close" @click="showCreateModal = false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
           </div>
           
-          <div class="form-group">
-            <label>Architecture</label>
-            <select v-model="newModel.architecture" class="form-input">
-              <option value="cnn_simple">Simple CNN</option>
-              <option value="cnn_advanced">Advanced CNN</option>
-              <option value="resnet">ResNet</option>
-              <option value="custom">Custom Architecture</option>
-            </select>
+          <div class="modal-body">
+            <div class="step-explanation">
+              <h4>Model Name & Purpose</h4>
+              <p>Give your model a descriptive name that helps you identify its purpose. This name will be displayed in your model list and used for reference.</p>
+            </div>
+            
+            <div class="form-group">
+              <label>Model Name</label>
+              <input 
+                v-model="newModel.name" 
+                type="text" 
+                placeholder="e.g., Production CNN v2.1"
+                class="form-input"
+              >
+              <div class="form-help">Use a name that describes the model's purpose or version</div>
+            </div>
+            
+            <div class="form-group">
+              <label>Model Description (Optional)</label>
+              <textarea 
+                v-model="newModel.description"
+                placeholder="Describe what makes this model special or its intended use case..."
+                class="form-input"
+                rows="3"
+              ></textarea>
+            </div>
           </div>
           
-          <div class="form-group">
-            <label>Training Epochs</label>
-            <input 
-              v-model="newModel.epochs" 
-              type="number" 
-              min="1" 
-              max="100"
-              class="form-input"
-            >
-          </div>
-          
-          <div class="form-group">
-            <label>Learning Rate</label>
-            <input 
-              v-model="newModel.learning_rate" 
-              type="number" 
-              step="0.001"
-              min="0.001"
-              max="0.1"
-              class="form-input"
-            >
-          </div>
-          
-          <div class="form-group">
-            <label class="checkbox-container">
-              <input type="checkbox" v-model="newModel.use_pretrained">
-              <span class="checkmark"></span>
-              Use pre-trained weights
-            </label>
+          <div class="modal-footer">
+            <button class="btn-secondary" @click="showCreateModal = false">
+              Cancel
+            </button>
+            <button class="btn-primary" @click="nextStep" :disabled="!newModel.name">
+              Next: Architecture
+            </button>
           </div>
         </div>
-        
-        <div class="modal-footer">
-          <button class="btn-secondary" @click="showCreateModal = false">
-            Cancel
-          </button>
-          <button class="btn-primary" @click="createModel" :disabled="!newModel.name">
-            Create Model
-          </button>
+
+        <!-- Step 2: Architecture Selection -->
+        <div v-if="currentStep === 2" class="wizard-step">
+          <div class="modal-header">
+            <h3>Choose Model Architecture</h3>
+            <button class="modal-close" @click="showCreateModal = false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="modal-body">
+            <div class="step-explanation">
+              <h4>Select Architecture Type</h4>
+              <p>Choose the neural network architecture that best fits your needs. Different architectures offer varying balances of accuracy, speed, and resource requirements.</p>
+            </div>
+            
+            <div class="architecture-options">
+              <div 
+                v-for="arch in architectureOptions" 
+                :key="arch.value"
+                class="architecture-option"
+                :class="{ 'selected': newModel.architecture === arch.value }"
+                @click="newModel.architecture = arch.value"
+              >
+                <div class="arch-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path :d="arch.icon"/>
+                  </svg>
+                </div>
+                <div class="arch-info">
+                  <h5>{{ arch.name }}</h5>
+                  <p>{{ arch.description }}</p>
+                  <div class="arch-specs">
+                    <span class="spec-tag" :class="arch.speed.class">{{ arch.speed.label }}</span>
+                    <span class="spec-tag" :class="arch.accuracy.class">{{ arch.accuracy.label }}</span>
+                    <span class="spec-tag" :class="arch.complexity.class">{{ arch.complexity.label }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button class="btn-secondary" @click="prevStep">
+              Back
+            </button>
+            <button class="btn-primary" @click="nextStep">
+              Next: Training Settings
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Training Configuration -->
+        <div v-if="currentStep === 3" class="wizard-step">
+          <div class="modal-header">
+            <h3>Training Configuration</h3>
+            <button class="modal-close" @click="showCreateModal = false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="modal-body">
+            <div class="step-explanation">
+              <h4>Configure Training Parameters</h4>
+              <p>Adjust these settings to control how your model learns. The right balance depends on your data and performance requirements.</p>
+            </div>
+            
+            <div class="training-config-grid">
+              <div class="form-group">
+                <label>Training Epochs</label>
+                <input 
+                  v-model="newModel.epochs" 
+                  type="number" 
+                  min="1" 
+                  max="100"
+                  class="form-input"
+                >
+                <div class="form-help">
+                  Number of complete passes through the training dataset.
+                  <br>Recommended: 10-50 epochs
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label>Learning Rate</label>
+                <input 
+                  v-model="newModel.learning_rate" 
+                  type="number" 
+                  step="0.001"
+                  min="0.001"
+                  max="0.1"
+                  class="form-input"
+                >
+                <div class="form-help">
+                  How quickly the model adapts to the data.
+                  <br>Lower = more precise, Higher = faster training
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label>Batch Size</label>
+                <input 
+                  v-model="newModel.batch_size" 
+                  type="number" 
+                  min="32"
+                  max="512"
+                  step="32"
+                  class="form-input"
+                >
+                <div class="form-help">
+                  Number of samples processed before model update.
+                  <br>Smaller = more updates, Larger = faster training
+                </div>
+              </div>
+              
+              <div class="form-group full-width">
+                <label class="checkbox-container">
+                  <input type="checkbox" v-model="newModel.use_pretrained">
+                  <span class="checkmark"></span>
+                  Use pre-trained weights
+                </label>
+                <div class="form-help">
+                  Start with weights from existing models for faster convergence.
+                  Recommended for most use cases.
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button class="btn-secondary" @click="prevStep">
+              Back
+            </button>
+            <button class="btn-primary" @click="nextStep">
+              Next: Review & Create
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 4: Review & Create -->
+        <div v-if="currentStep === 4" class="wizard-step">
+          <div class="modal-header">
+            <h3>Review & Create Model</h3>
+            <button class="modal-close" @click="showCreateModal = false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="modal-body">
+            <div class="step-explanation">
+              <h4>Confirm Your Settings</h4>
+              <p>Review all configuration before creating your model. You can go back to modify any settings.</p>
+            </div>
+            
+            <div class="review-summary">
+              <div class="review-section">
+                <h5>Basic Information</h5>
+                <div class="review-item">
+                  <span class="review-label">Model Name:</span>
+                  <span class="review-value">{{ newModel.name }}</span>
+                </div>
+                <div v-if="newModel.description" class="review-item">
+                  <span class="review-label">Description:</span>
+                  <span class="review-value">{{ newModel.description }}</span>
+                </div>
+              </div>
+              
+              <div class="review-section">
+                <h5>Architecture</h5>
+                <div class="review-item">
+                  <span class="review-label">Architecture:</span>
+                  <span class="review-value">{{ getArchitectureName(newModel.architecture) }}</span>
+                </div>
+              </div>
+              
+              <div class="review-section">
+                <h5>Training Configuration</h5>
+                <div class="review-item">
+                  <span class="review-label">Epochs:</span>
+                  <span class="review-value">{{ newModel.epochs }}</span>
+                </div>
+                <div class="review-item">
+                  <span class="review-label">Learning Rate:</span>
+                  <span class="review-value">{{ newModel.learning_rate }}</span>
+                </div>
+                <div class="review-item">
+                  <span class="review-label">Batch Size:</span>
+                  <span class="review-value">{{ newModel.batch_size }}</span>
+                </div>
+                <div class="review-item">
+                  <span class="review-label">Pre-trained Weights:</span>
+                  <span class="review-value">{{ newModel.use_pretrained ? 'Yes' : 'No' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button class="btn-secondary" @click="prevStep">
+              Back
+            </button>
+            <button class="btn-primary" @click="createModel" :disabled="!newModel.name">
+              Create Model
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="wizard-progress">
+          <div 
+            v-for="step in 4" 
+            :key="step"
+            class="progress-step"
+            :class="{ 
+              'active': step === currentStep, 
+              'completed': step < currentStep 
+            }"
+          >
+            <div class="step-number">{{ step }}</div>
+            <div class="step-label">{{ getStepLabel(step) }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -268,6 +477,7 @@ export default {
   name: 'ModelManagement',
   setup() {
     const showCreateModal = ref(false)
+    const currentStep = ref(1)
     const loading = ref(false)
     const trainingPolls = new Map()
     
@@ -276,12 +486,53 @@ export default {
 
     const newModel = ref({
       name: '',
+      description: '',
       architecture: 'cnn_simple',
       epochs: 10,
       learning_rate: 0.001,
       batch_size: 128,
       use_pretrained: true
     })
+
+    // Architecture options with detailed information
+    const architectureOptions = ref([
+      {
+        value: 'cnn_simple',
+        name: 'Simple CNN',
+        description: 'Basic convolutional network ideal for getting started and simple digit recognition tasks.',
+        icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+        speed: { label: 'Fast', class: 'speed-fast' },
+        accuracy: { label: 'Good', class: 'accuracy-good' },
+        complexity: { label: 'Simple', class: 'complexity-low' }
+      },
+      {
+        value: 'cnn_advanced',
+        name: 'Advanced CNN',
+        description: 'Enhanced convolutional network with deeper layers for improved accuracy on complex patterns.',
+        icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+        speed: { label: 'Medium', class: 'speed-medium' },
+        accuracy: { label: 'Very Good', class: 'accuracy-very-good' },
+        complexity: { label: 'Medium', class: 'complexity-medium' }
+      },
+      {
+        value: 'resnet',
+        name: 'ResNet',
+        description: 'Residual network architecture with skip connections, excellent for deep networks and high accuracy.',
+        icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+        speed: { label: 'Slow', class: 'speed-slow' },
+        accuracy: { label: 'Excellent', class: 'accuracy-excellent' },
+        complexity: { label: 'High', class: 'complexity-high' }
+      },
+      {
+        value: 'custom',
+        name: 'Custom Architecture',
+        description: 'Build your own architecture with custom layers and configurations for specialized use cases.',
+        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+        speed: { label: 'Variable', class: 'speed-variable' },
+        accuracy: { label: 'Variable', class: 'accuracy-variable' },
+        complexity: { label: 'Expert', class: 'complexity-expert' }
+      }
+    ])
 
     // Real digit accuracy data
     const digitAccuracy = ref([])
@@ -304,6 +555,47 @@ export default {
     const trainingSamples = computed(() => {
       return models.value.reduce((sum, model) => sum + model.training_samples, 0)
     })
+
+    // Wizard navigation methods
+    const nextStep = () => {
+      if (currentStep.value < 4) {
+        currentStep.value++
+      }
+    }
+
+    const prevStep = () => {
+      if (currentStep.value > 1) {
+        currentStep.value--
+      }
+    }
+
+    const getStepLabel = (step) => {
+      const labels = {
+        1: 'Basic Info',
+        2: 'Architecture',
+        3: 'Training',
+        4: 'Review'
+      }
+      return labels[step]
+    }
+
+    const getArchitectureName = (archValue) => {
+      const arch = architectureOptions.value.find(a => a.value === archValue)
+      return arch ? arch.name : archValue
+    }
+
+    const resetWizard = () => {
+      currentStep.value = 1
+      newModel.value = {
+        name: '',
+        description: '',
+        architecture: 'cnn_simple',
+        epochs: 10,
+        learning_rate: 0.001,
+        batch_size: 128,
+        use_pretrained: true
+      }
+    }
 
     // Load data on component mount
     onMounted(() => {
@@ -355,16 +647,7 @@ export default {
         // Add new model to the list
         models.value.push(response.data)
         showCreateModal.value = false
-        
-        // Reset form
-        newModel.value = {
-          name: '',
-          architecture: 'cnn_simple',
-          epochs: 10,
-          learning_rate: 0.001,
-          batch_size: 128,
-          use_pretrained: true
-        }
+        resetWizard()
         
       } catch (error) {
         console.error('Failed to create model:', error)
@@ -605,6 +888,8 @@ export default {
       newModel,
       digitAccuracy,
       showCreateModal,
+      currentStep,
+      architectureOptions,
       loading,
       overallAccuracy,
       activeModels,
@@ -613,6 +898,10 @@ export default {
       formatStatus,
       formatTime,
       getAccuracyClass,
+      nextStep,
+      prevStep,
+      getStepLabel,
+      getArchitectureName,
       activateModel,
       startTraining,
       createModel,
@@ -1008,6 +1297,250 @@ export default {
   text-align: right;
 }
 
+/* Wizard Styles */
+.wizard-content {
+  max-width: 600px;
+  width: 90%;
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.step-explanation {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.step-explanation h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.step-explanation p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Architecture Options */
+.architecture-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.architecture-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.architecture-option:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.architecture-option.selected {
+  border-color: #059669;
+  background: #f0fdf4;
+}
+
+.arch-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-radius: 6px;
+  color: #64748b;
+}
+
+.architecture-option.selected .arch-icon {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.arch-info {
+  flex: 1;
+}
+
+.arch-info h5 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.arch-info p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.arch-specs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.spec-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.speed-fast { background: #d1fae5; color: #065f46; }
+.speed-medium { background: #fef3c7; color: #92400e; }
+.speed-slow { background: #fee2e2; color: #991b1b; }
+.speed-variable { background: #e0e7ff; color: #3730a3; }
+
+.accuracy-good { background: #d1fae5; color: #065f46; }
+.accuracy-very-good { background: #a7f3d0; color: #047857; }
+.accuracy-excellent { background: #34d399; color: #065f46; }
+.accuracy-variable { background: #e0e7ff; color: #3730a3; }
+
+.complexity-low { background: #d1fae5; color: #065f46; }
+.complexity-medium { background: #fef3c7; color: #92400e; }
+.complexity-high { background: #fee2e2; color: #991b1b; }
+.complexity-expert { background: #e0e7ff; color: #3730a3; }
+
+/* Training Configuration Grid */
+.training-config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.training-config-grid .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* Review Summary */
+.review-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-section {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.review-section h5 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+}
+
+.review-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.review-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.review-value {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 600;
+  text-align: right;
+  max-width: 60%;
+}
+
+/* Wizard Progress */
+.wizard-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.progress-step.active .step-number {
+  background: #059669;
+  color: white;
+}
+
+.progress-step.completed .step-number {
+  background: #10b981;
+  color: white;
+}
+
+.step-label {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+  text-align: center;
+}
+
+.progress-step.active .step-label {
+  color: #059669;
+  font-weight: 600;
+}
+
+.progress-step.completed .step-label {
+  color: #10b981;
+}
+
+/* Form Help Text */
+.form-help {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
@@ -1099,6 +1632,11 @@ export default {
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
 
+textarea.form-input {
+  resize: vertical;
+  min-height: 80px;
+}
+
 .checkbox-container {
   display: flex;
   align-items: center;
@@ -1163,6 +1701,27 @@ export default {
   
   .model-actions-full {
     flex-direction: column;
+  }
+  
+  .training-config-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .wizard-progress {
+    padding: 16px;
+  }
+  
+  .step-label {
+    font-size: 9px;
+  }
+  
+  .architecture-option {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .arch-icon {
+    align-self: flex-start;
   }
 }
 </style>
