@@ -96,10 +96,16 @@
             <div class="backend-source">
               Source: {{ currentPrediction.backend }}
             </div>
+            <div class="total-predictions">
+              Total Predictions: {{ totalPredictions.toLocaleString() }}
+            </div>
           </div>
           <div v-else class="no-prediction">
             <div class="placeholder-icon">?</div>
             <p>Draw a digit to see prediction</p>
+            <div class="total-predictions">
+              Total Predictions: {{ totalPredictions.toLocaleString() }}
+            </div>
           </div>
         </div>
 
@@ -203,9 +209,10 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import api from '@/services/api'
 import flaskApi from '@/services/flaskApi'
+import { useDashboardStore } from '@/stores/dashboard'
 
 export default {
   name: 'DigitRecognition',
@@ -222,6 +229,12 @@ export default {
     const backendAvailable = ref(false)
     const debugPreview = ref(true)
     const debugStats = ref({ min: 0, max: 0, avg: 0 })
+    
+    // Add dashboard store
+    const dashboardStore = useDashboardStore()
+    
+    // Add computed property for total predictions
+    const totalPredictions = computed(() => dashboardStore.totalPredictions)
 
     onMounted(() => {
       initCanvas()
@@ -353,6 +366,15 @@ export default {
           confidence_distribution: response.data.all_predictions || Array(10).fill(0.1),
           backend: backendAvailable.value ? 'flask' : 'demo'
         }
+        
+        // INCREMENT TOTAL PREDICTIONS - THIS IS THE KEY CHANGE!
+        dashboardStore.incrementPredictions()
+        
+        // Add a specific prediction activity with more details
+        dashboardStore.addPredictionActivity(
+          response.data.prediction, 
+          response.data.confidence
+        )
         
         // Add to recent predictions
         recentPredictions.value.unshift({
@@ -510,6 +532,10 @@ export default {
           backend: 'demo'
         }
         
+        // INCREMENT FOR TEST DIGITS TOO
+        dashboardStore.incrementPredictions()
+        dashboardStore.addPredictionActivity(digit, 0.95)
+        
         recentPredictions.value.unshift({
           id: Date.now(),
           predicted_digit: digit,
@@ -543,6 +569,7 @@ export default {
       backendAvailable,
       debugPreview,
       debugStats,
+      totalPredictions,
       startDrawing,
       draw,
       stopDrawing,
@@ -626,6 +653,17 @@ export default {
   font-size: 12px;
   color: #64748b;
   margin-top: 4px;
+}
+
+.total-predictions {
+  font-size: 14px;
+  color: #059669;
+  font-weight: 600;
+  margin-top: 8px;
+  background: #f0fdf4;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .backend-indicator {

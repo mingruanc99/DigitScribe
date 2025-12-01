@@ -60,10 +60,10 @@ public class AuthController {
             
             userService.updateLastLogin(user.getUsername());
             
-            return ResponseEntity.ok(new AuthResponse(token, user.getUsername(), user.getRole(), "Login successful"));
+            return ResponseEntity.ok(new AuthResponse(token, user.getUsername(), user.getEmail(), user.getRole(), "Login successful"));
             
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new AuthResponse(null, null, null, "Invalid credentials"));
+            return ResponseEntity.badRequest().body(new AuthResponse(null, null, null, null, "Invalid credentials"));
         }
     }
     
@@ -79,10 +79,10 @@ public class AuthController {
             
             String token = jwtUtil.generateToken(user.getUsername());
             
-            return ResponseEntity.ok(new AuthResponse(token, user.getUsername(), user.getRole(), "Registration successful"));
+            return ResponseEntity.ok(new AuthResponse(token, user.getUsername(), user.getEmail(), user.getRole(), "Registration successful"));
             
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new AuthResponse(null, null, null, e.getMessage()));
-        }
+            return ResponseEntity.badRequest().body(new AuthResponse(null, null, null, null, e.getMessage()));
     }
+}
 }

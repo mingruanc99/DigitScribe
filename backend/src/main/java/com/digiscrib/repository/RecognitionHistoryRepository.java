@@ -22,4 +22,7 @@ public interface RecognitionHistoryRepository extends JpaRepository<RecognitionH
     
     @Query("SELECT COUNT(r) FROM RecognitionHistory r WHERE r.correctPrediction = true")
     long countCorrectPredictions();
+
+    @Query("SELECT COUNT(r) FROM RecognitionHistory r WHERE r.actualDigit IS NOT NULL")
+    long countWithFeedback();
 }

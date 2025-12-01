@@ -1,13 +1,18 @@
 <template>
   <nav class="top-navigation">
     <div class="nav-left">
-      <button class="sidebar-toggle" @click="$emit('toggle-sidebar')">
+      <button 
+        class="sidebar-toggle" 
+        @click="$emit('toggle-sidebar')"
+        :aria-label="t('toggleSidebar')"
+      >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="3" y1="12" x2="21" y2="12"/>
           <line x1="3" y1="6" x2="21" y2="6"/>
           <line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
+      
       <div class="breadcrumb">
         <span class="page-title">{{ currentPageTitle }}</span>
       </div>
@@ -15,70 +20,33 @@
     
     <div class="nav-right">
       <div class="nav-items">
-        <!-- Translation Button -->
-        <div class="language-selector">
-          <button class="nav-item" @click="toggleLanguage">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="2" y1="12" x2="22" y2="12"/>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            <span class="language-text">{{ currentLanguage === 'en' ? 'EN' : '中文' }}</span>
-          </button>
-        </div>
-        
-        <!-- User Menu -->
-        <div class="user-menu">
-          <button class="user-trigger" @click="showUserMenu = !showUserMenu">
-            <div class="user-avatar">
-              {{ userInitials }}
-            </div>
-            <span class="user-name">{{ userName }}</span>
+        <!-- Language Switcher -->
+        <button class="nav-item language-switcher" @click="toggleLanguage">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span>{{ currentLanguage === 'en' ? 'EN' : '中文' }}</span>
+        </button>
+
+        <!-- Admin Info -->
+        <div class="admin-info">
+          <div class="admin-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"/>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>{{ t('admin') }}</span>
+          </div>
+          
+          <!-- Logout Button -->
+          <button class="logout-btn" @click="handleLogout" :title="t('signOut')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
           </button>
-          
-          <div v-if="showUserMenu" class="user-dropdown" @click.stop>
-            <div class="user-info">
-              <div class="user-avatar large">
-                {{ userInitials }}
-              </div>
-              <div class="user-details">
-                <div class="user-name">{{ userName }}</div>
-                <div class="user-email">{{ userEmail }}</div>
-                <div class="user-role">{{ userRole }}</div>
-              </div>
-            </div>
-            <div class="dropdown-divider"></div>
-            
-            <!-- FIXED: Use route names instead of hardcoded paths -->
-            <router-link :to="{ name: 'UserProfile' }" class="dropdown-item" @click="showUserMenu = false">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-              {{ t('profile') }}
-            </router-link>
-            
-            <router-link :to="{ name: 'UserSettings' }" class="dropdown-item" @click="showUserMenu = false">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-              {{ t('settings') }}
-            </router-link>
-            
-            <div class="dropdown-divider"></div>
-            <a href="#" class="dropdown-item text-danger" @click="handleLogout">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                <polyline points="16 17 21 12 16 7"/>
-                <line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-                {{ t('signOut') }}
-            </a>
-          </div>
         </div>
       </div>
     </div>
@@ -86,103 +54,215 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 export default {
   name: 'TopNavigation',
-  emits: ['toggle-sidebar'],
-  setup() {
+  emits: ['toggle-sidebar', 'language-changed'],
+  setup(props, { emit }) {
     const router = useRouter()
     const route = useRoute()
-    const showUserMenu = ref(false)
-    const currentLanguage = ref('en') // 'en' or 'zh'
     
-    // Translation dictionary
+    const currentLanguage = ref('en')
+    
+    // Translations dictionary - expanded for all UI elements
     const translations = {
       en: {
-        profile: 'Profile',
-        settings: 'Settings',
+        // Navigation
+        toggleSidebar: 'Toggle Sidebar',
+        admin: 'ADMIN',
         signOut: 'Sign Out',
+        
+        // Page titles
         dashboard: 'Dashboard',
-        models: 'Models',
-        admin: 'Admin Panel',
-        userProfile: 'User Profile',
-        userSettings: 'User Settings'
+        digitRecognition: 'Digit Recognition',
+        modelManagement: 'AI Models',
+        analytics: 'Analytics',
+        feedbackSystem: 'Feedback System',
+        adminPanel: 'Admin Panel',
+        
+        // Dashboard specific
+        totalPredictions: 'Total Predictions',
+        overallAccuracy: 'Overall Accuracy',
+        activeModels: 'Active Models',
+        quickActions: 'Quick Actions',
+        recentActivity: 'Recent Activity',
+        viewAll: 'View All',
+        newModelDeployment: 'New model deployment',
+        modelTrainingCompleted: 'Model training completed',
+        digitPredictionCompleted: 'Digit prediction completed',
+        
+        // Digit Recognition specific
+        drawDigit: 'Draw a digit (0-9) and let AI predict what it is',
+        connectedToBackend: '✓ Connected to AI Backend',
+        demoMode: '⚠ Using Demo Mode (Flask backend not available)',
+        clearCanvas: 'Clear Canvas',
+        predictDigit: 'Predict Digit',
+        analyzing: 'Analyzing...',
+        quickTest: 'Quick Test',
+        predictionResult: 'Prediction Result',
+        confidence: 'Confidence',
+        processedIn: 'Processed in',
+        source: 'Source',
+        confidenceDistribution: 'Confidence Distribution',
+        feedbackQuestion: 'Was this prediction correct?',
+        correct: '✓ Correct',
+        incorrect: '✗ Incorrect',
+        provideFeedback: 'Provide feedback after prediction',
+        thanksForFeedback: 'Thank you for your feedback!',
+        recentPredictions: 'Recent Predictions',
+        noPredictionsYet: 'No predictions yet',
+        debugPreview: 'Debug Preview (28x28 sent to AI)',
+        showDebug: 'Show Debug Preview',
+        hideDebug: 'Hide Debug',
+        
+        // Common actions
+        loading: 'Loading data...',
+        saving: 'Saving...',
+        deleting: 'Deleting...',
+        confirm: 'Confirm',
+        cancel: 'Cancel',
+        save: 'Save',
+        delete: 'Delete',
+        edit: 'Edit',
+        create: 'Create',
+        update: 'Update',
+        search: 'Search',
+        filter: 'Filter',
+        sort: 'Sort',
+        
+        // Status messages
+        success: 'Success',
+        error: 'Error',
+        warning: 'Warning',
+        info: 'Information',
+        
+        // Time units
+        justNow: 'Just now',
+        minutesAgo: 'minutes ago',
+        hoursAgo: 'hours ago',
+        daysAgo: 'days ago'
       },
       zh: {
-        profile: '个人资料',
-        settings: '设置',
+        // Navigation
+        toggleSidebar: '切换侧边栏',
+        admin: '管理员',
         signOut: '退出登录',
+        
+        // Page titles
         dashboard: '仪表板',
-        models: '模型管理',
-        admin: '管理员面板',
-        userProfile: '用户资料',
-        userSettings: '用户设置'
+        digitRecognition: '数字识别',
+        modelManagement: 'AI模型',
+        analytics: '数据分析',
+        feedbackSystem: '反馈系统',
+        adminPanel: '管理员面板',
+        
+        // Dashboard specific
+        totalPredictions: '总预测数',
+        overallAccuracy: '整体准确率',
+        activeModels: '活跃模型',
+        quickActions: '快速操作',
+        recentActivity: '最近活动',
+        viewAll: '查看全部',
+        newModelDeployment: '新模型部署',
+        modelTrainingCompleted: '模型训练完成',
+        digitPredictionCompleted: '数字预测完成',
+        
+        // Digit Recognition specific
+        drawDigit: '绘制数字 (0-9)，让AI预测是什么',
+        connectedToBackend: '✓ 已连接AI后端',
+        demoMode: '⚠ 使用演示模式 (Flask后端不可用)',
+        clearCanvas: '清除画布',
+        predictDigit: '预测数字',
+        analyzing: '分析中...',
+        quickTest: '快速测试',
+        predictionResult: '预测结果',
+        confidence: '置信度',
+        processedIn: '处理时间',
+        source: '来源',
+        confidenceDistribution: '置信度分布',
+        feedbackQuestion: '这个预测正确吗？',
+        correct: '✓ 正确',
+        incorrect: '✗ 不正确',
+        provideFeedback: '预测后提供反馈',
+        thanksForFeedback: '感谢您的反馈！',
+        recentPredictions: '最近预测',
+        noPredictionsYet: '暂无预测',
+        debugPreview: '调试预览 (发送给AI的28x28图像)',
+        showDebug: '显示调试预览',
+        hideDebug: '隐藏调试',
+        
+        // Common actions
+        loading: '加载数据...',
+        saving: '保存中...',
+        deleting: '删除中...',
+        confirm: '确认',
+        cancel: '取消',
+        save: '保存',
+        delete: '删除',
+        edit: '编辑',
+        create: '创建',
+        update: '更新',
+        search: '搜索',
+        filter: '筛选',
+        sort: '排序',
+        
+        // Status messages
+        success: '成功',
+        error: '错误',
+        warning: '警告',
+        info: '信息',
+        
+        // Time units
+        justNow: '刚刚',
+        minutesAgo: '分钟前',
+        hoursAgo: '小时前',
+        daysAgo: '天前'
       }
     }
-    
-    // Mock user data - replace with actual user data from your auth system
-    const userData = ref({
-      name: '张伟',
-      email: 'zhang.wei@example.com',
-      role: 'Administrator'
-    })
     
     // Translation function
     const t = (key) => {
       return translations[currentLanguage.value][key] || key
     }
     
-    // Toggle between English and Chinese
+    // Get page title based on current route
+    const currentPageTitle = computed(() => {
+      const routeTitles = {
+        'DashboardHome': t('dashboard'),
+        'DigitRecognition': t('digitRecognition'),
+        'ModelManagement': t('modelManagement'),
+        'Analytics': t('analytics'),
+        'FeedbackSystem': t('feedbackSystem'),
+        'AdminPanel': t('adminPanel')
+      }
+      return routeTitles[route.name] || 'DigiScribe'
+    })
+    
+    // Language toggle function
     const toggleLanguage = () => {
       currentLanguage.value = currentLanguage.value === 'en' ? 'zh' : 'en'
-      // Save to localStorage
       localStorage.setItem('preferredLanguage', currentLanguage.value)
       
-      // Update user data based on language
-      if (currentLanguage.value === 'en') {
-        userData.value.name = 'John Doe'
-        userData.value.role = 'Administrator'
-      } else {
-        userData.value.name = '张伟'
-        userData.value.role = '管理员'
-      }
+      // Emit event to parent components
+      emit('language-changed', currentLanguage.value)
+      
+      // Dispatch a custom event that can be listened to globally
+      window.dispatchEvent(new CustomEvent('language-change', { 
+        detail: { language: currentLanguage.value } 
+      }))
     }
     
-    const userInitials = computed(() => {
-      return userData.value.name
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .toUpperCase()
-    })
-    
-    const userName = computed(() => userData.value.name)
-    const userEmail = computed(() => userData.value.email)
-    const userRole = computed(() => userData.value.role)
-    
-    const currentPageTitle = computed(() => {
-      // Dynamic page titles based on route
-      const routeTitles = {
-        '/': t('dashboard'),
-        '/models': t('models'),
-        '/admin': t('admin'),
-        '/user/profile': t('userProfile'),
-        '/user/settings': t('userSettings')
-      }
-      return routeTitles[route.path] || 'DigiScribe'
-    })
-    
+    // Logout function
     const handleLogout = () => {
-      // Handle logout logic
-      console.log('Logging out...')
-      // Clear user session, tokens, etc.
+      console.log('Admin logging out...')
       localStorage.removeItem('authToken')
-      router.push('/login')
+      localStorage.removeItem('userRole')
+      router.push('/')
     }
     
-    // Initialize language from localStorage
+    // Load saved language preference
     onMounted(() => {
       const savedLanguage = localStorage.getItem('preferredLanguage')
       if (savedLanguage) {
@@ -190,17 +270,23 @@ export default {
       }
     })
     
+    // Watch for language changes and update document title
+    watch(currentLanguage, (newLang) => {
+      document.title = `${t('dashboard')} - DigiScribe`
+    })
+    
+    // Provide translation function to child components
+    const provideTranslations = () => {
+      return { t, currentLanguage }
+    }
+    
     return {
-      showUserMenu,
-      userInitials,
-      userName,
-      userEmail,
-      userRole,
-      currentPageTitle,
       currentLanguage,
+      currentPageTitle,
       t,
       toggleLanguage,
-      handleLogout
+      handleLogout,
+      provideTranslations
     }
   }
 }
@@ -260,10 +346,11 @@ export default {
 .nav-items {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 }
 
-.nav-item {
+/* Language Switcher */
+.language-switcher {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -275,149 +362,91 @@ export default {
   color: #64748b;
   transition: all 0.2s ease;
   font-size: 14px;
+  font-weight: 500;
 }
 
-.nav-item:hover {
+.language-switcher:hover {
   background: #f1f5f9;
   color: #334155;
 }
 
-.language-text {
-  font-weight: 500;
-}
-
-.user-menu {
-  position: relative;
-  margin-left: 8px;
-}
-
-.user-trigger {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.user-trigger:hover {
-  background: #f1f5f9;
-}
-
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #059669, #047857);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 12px;
-}
-
-.user-avatar.large {
-  width: 48px;
-  height: 48px;
-  font-size: 16px;
-}
-
-.user-name {
-  font-weight: 500;
-  color: #334155;
-  font-size: 14px;
-}
-
-.user-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  min-width: 280px;
-  z-index: 1000;
-}
-
-.user-info {
-  padding: 16px;
+/* Admin Info */
+.admin-info {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
-.user-details {
-  flex: 1;
-}
-
-.user-details .user-name {
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 2px;
-  font-size: 14px;
-}
-
-.user-email {
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 2px;
-}
-
-.user-role {
-  font-size: 11px;
-  color: #059669;
-  background: #f0fdf4;
-  padding: 2px 6px;
-  border-radius: 4px;
-  display: inline-block;
-}
-
-.dropdown-divider {
-  height: 1px;
-  background: #e2e8f0;
-  margin: 8px 0;
-}
-
-.dropdown-item {
+.admin-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  color: #64748b;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  font-size: 14px;
+  gap: 6px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #059669, #047857);
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.admin-badge svg {
+  stroke: white;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
   cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  color: #64748b;
+  transition: all 0.2s ease;
 }
 
-.dropdown-item:hover {
-  background: #f8fafc;
-  color: #1e293b;
-}
-
-.dropdown-item.text-danger {
+.logout-btn:hover {
+  background: #fef2f2;
   color: #ef4444;
 }
 
-.dropdown-item.text-danger:hover {
-  background: #fef2f2;
-  color: #dc2626;
+/* Responsive */
+@media (max-width: 768px) {
+  .top-navigation {
+    padding: 0 16px;
+  }
+  
+  .nav-items {
+    gap: 12px;
+  }
+  
+  .admin-info {
+    gap: 8px;
+    padding: 4px 8px;
+  }
+  
+  .admin-badge span {
+    font-size: 11px;
+  }
 }
 
-/* Close dropdown when clicking outside */
-.user-dropdown::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: -1;
+@media (max-width: 480px) {
+  .language-switcher span {
+    display: none;
+  }
+  
+  .admin-badge span {
+    display: none;
+  }
+  
+  .page-title {
+    font-size: 16px;
+  }
 }
 </style>

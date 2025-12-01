@@ -1,25 +1,37 @@
 <template>
   <div class="auth-container">
     <div class="auth-card">
+      <!-- Language Switcher -->
+      <div class="language-switcher">
+        <button 
+          @click="switchLanguage('en')" 
+          :class="['lang-btn', { active: currentLang === 'en' }]"
+        >
+          EN
+        </button>
+        <button 
+          @click="switchLanguage('zh')" 
+          :class="['lang-btn', { active: currentLang === 'zh' }]"
+        >
+          中文
+        </button>
+      </div>
+
       <!-- Left Side - Branding -->
       <div class="brand-section">
         <div class="logo">
           <div class="logo-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-              <path d="M2 2l7.586 7.586"/>
-            </svg>
+            <img src="/main.png" alt="DigiScribe" class="main-logo-image">
           </div>
           <div class="brand-text">
-            <h1 class="app-name">DigiScribe</h1>
-            <p class="app-tagline">AI Digit Recognition</p>
+            <h1 class="app-name">{{ t('appName') }}</h1>
+            <p class="app-tagline">{{ t('appTagline') }}</p>
           </div>
         </div>
-        
+
         <div class="brand-content">
-          <h2 class="brand-title">Welcome to DigiScribe</h2>
-          <p class="brand-subtitle">Sign in to continue your digit recognition journey</p>
+          <h2 class="brand-title">{{ t('welcome') }}</h2>
+          <p class="brand-subtitle" v-html="t('secureAccess')"></p>
         </div>
 
         <div class="feature-list">
@@ -30,7 +42,7 @@
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
             </div>
-            <span>MNIST-Powered Recognition System</span>
+            <span>{{ t('feature1') }}</span>
           </div>
           <div class="feature-item">
             <div class="feature-icon">
@@ -40,7 +52,7 @@
                 <line x1="6" y1="20" x2="6" y2="14"/>
               </svg>
             </div>
-            <span>Detailed Analytics</span>
+            <span>{{ t('feature2') }}</span>
           </div>
           <div class="feature-item">
             <div class="feature-icon">
@@ -50,7 +62,7 @@
                 <path d="M12 7v4"/>
               </svg>
             </div>
-            <span>Created by Group 3</span>
+            <span>{{ t('feature3') }}</span>
           </div>
         </div>
       </div>
@@ -59,13 +71,13 @@
       <div class="form-section">
         <div class="form-container">
           <div class="form-header">
-            <h3>Sign In</h3>
-            <p>Enter your credentials to access your account</p>
+            <h3>{{ t('adminSignIn') }}</h3>
+            <p>{{ t('enterCredentials') }}</p>
           </div>
 
           <form @submit.prevent="handleLogin" class="auth-form">
             <div class="form-group">
-              <label for="username">Username or Email</label>
+              <label for="username">{{ t('adminUsername') }}</label>
               <div class="input-container">
                 <div class="input-icon">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -77,7 +89,7 @@
                   id="username"
                   v-model="form.username"
                   type="text"
-                  placeholder="Enter your username or email"
+                  :placeholder="t('enterUsername')"
                   required
                   class="form-input"
                 >
@@ -86,8 +98,8 @@
 
             <div class="form-group">
               <div class="label-container">
-                <label for="password">Password</label>
-                <a href="#" class="forgot-link">Forgot password?</a>
+                <label for="password">{{ t('password') }}</label>
+                <a href="#" class="forgot-link">{{ t('forgotPassword') }}</a>
               </div>
               <div class="input-container">
                 <div class="input-icon">
@@ -100,7 +112,7 @@
                   id="password"
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
-                  placeholder="Enter your password"
+                  :placeholder="t('enterPassword')"
                   required
                   class="form-input"
                 >
@@ -119,38 +131,23 @@
               </div>
             </div>
 
+            <div v-if="errorMessage" class="error-message">
+              {{ errorMessage }}
+            </div>
+
             <div class="form-options">
               <label class="checkbox-container">
                 <input type="checkbox" v-model="form.rememberMe">
                 <span class="checkmark"></span>
-                Remember me
+                {{ t('rememberMe') }}
               </label>
             </div>
 
             <button type="submit" class="submit-btn" :disabled="loading">
               <span v-if="loading" class="loading-spinner"></span>
-              {{ loading ? 'Signing In...' : 'Sign In' }}
-            </button>
-
-            <div class="divider">
-              <span>or continue with</span>
-            </div>
-
-            <button type="button" class="wechat-btn" @click="handleWechatLogin">
-              <div class="wechat-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#07C160">
-                  <path d="M8.691 4.362C4.792 5.633 2 9.22 2 13.44c0 2.384.928 4.549 2.444 6.165-.137.495-.94 3.347-.94 3.347-.044.255.118.48.352.48a.47.47 0 0 0 .218-.054c.001 0 2.696-1.212 3.372-1.492a11.9 11.9 0 0 0 3.614.554c6.232 0 11.285-4.61 11.285-10.295 0-5.686-5.053-10.295-11.285-10.295zM6.897 8.41a.938.938 0 1 1 0 1.875.938.938 0 0 1 0-1.876zm5.163 0a.938.938 0 1 1 0 1.875.938.938 0 0 1 0-1.876z"/>
-                </svg>
-              </div>
-              Wechat Login (In Development)
+              {{ loading ? t('signingIn') : t('signIn') }}
             </button>
           </form>
-
-          <div class="auth-footer">
-            <p>Don't have an account? 
-              <a @click="$router.push('/register')" class="auth-link">Sign up</a>
-            </p>
-          </div>
         </div>
       </div>
     </div>
@@ -158,17 +155,18 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import authService from '@/services/authService'
+import { i18n } from '@/utils/i18n'
 
 export default {
-  name: 'Login',
+  name: 'AdminLogin',
   setup() {
     const router = useRouter()
     const loading = ref(false)
     const showPassword = ref(false)
     const errorMessage = ref('')
+    const languageVersion = ref(0) // Force re-render when language changes
     
     const form = ref({
       username: '',
@@ -176,19 +174,81 @@ export default {
       rememberMe: false
     })
 
+    // Language functionality
+    const currentLang = computed(() => i18n.getLanguage())
+    
+    const t = (key) => {
+      // Use languageVersion to make the translation reactive
+      languageVersion.value;
+      return i18n.t(key)
+    }
+
+    const switchLanguage = (lang) => {
+      i18n.setLanguage(lang)
+    }
+
+    // Listen for language changes
+    const handleLanguageChange = () => {
+      languageVersion.value++ // Force re-computation of all translations
+    }
+
+    // Set up listener when component mounts
+    onMounted(() => {
+      i18n.addListener(handleLanguageChange)
+    })
+
+    // Clean up listener when component unmounts
+    onUnmounted(() => {
+      i18n.removeListener(handleLanguageChange)
+    })
+
     const handleLogin = async () => {
+      // Validation with translated messages
+      if (!form.value.username || form.value.username.trim() === '') {
+        errorMessage.value = t('enterUsernameError')
+        return
+      }
+
+      if (!form.value.password) {
+        errorMessage.value = t('enterPasswordError')
+        return
+      }
+
       loading.value = true
       errorMessage.value = ''
-      
+
       try {
-        await authService.login({
+        const loginData = {
           username: form.value.username,
           password: form.value.password
-        })
+        };
         
-        router.push('/dashboard')
+        console.log('Sending admin login data:', loginData);
+        
+        const response = await fetch('http://localhost:8081/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(loginData)
+        });
+        
+        console.log('Response status:', response.status);
+        
+        const data = await response.json();
+        console.log('Login response data:', data);
+        
+        if (response.ok) {
+          localStorage.setItem('authToken', data.token);
+          localStorage.setItem('isAdmin', 'true');
+          localStorage.setItem('preferredLanguage', currentLang.value);
+          router.push('/admin/dashboard');
+        } else {
+          errorMessage.value = data.message || t('loginFailed');
+        }
       } catch (error) {
-        errorMessage.value = error.message
+        errorMessage.value = `${t('loginError')}: ${error.message}`;
+        console.error('Admin login error details:', error);
       } finally {
         loading.value = false
       }
@@ -199,6 +259,9 @@ export default {
       loading,
       showPassword,
       errorMessage,
+      currentLang,
+      t,
+      switchLanguage,
       handleLogin
     }
   }
@@ -206,10 +269,12 @@ export default {
 </script>
 
 <style scoped>
+/* Your existing CSS styles remain the same */
 .auth-container {
   width: 100%;
   max-width: 1000px;
   min-height: 600px;
+  position: relative;
 }
 
 .auth-card {
@@ -220,6 +285,44 @@ export default {
   grid-template-columns: 1fr 1fr;
   min-height: 600px;
   overflow: hidden;
+  position: relative;
+}
+
+/* Language Switcher */
+.language-switcher {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: var(--shadow);
+}
+
+.lang-btn {
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #059669;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+  background: #059669;
+  color:  #fafafa;
+}
+
+.lang-btn.active {
+  background:  #059669;
+  color: #ffffff;
 }
 
 /* Brand Section */
@@ -254,6 +357,14 @@ export default {
   color: white;
 }
 
+.main-logo-image {
+  width: 180px;
+  height: 180px;
+  max-width: 200px;
+  margin-bottom: 20px;
+  left: 80%;
+}
+
 .brand-text {
   line-height: 1.3;
 }
@@ -284,6 +395,7 @@ export default {
   opacity: 0.9;
   font-size: 16px;
   line-height: 1.5;
+  text-align: center;
 }
 
 .feature-list {
@@ -371,7 +483,7 @@ label {
 
 .forgot-link {
   font-size: 12px;
-  color: var(--primary);
+  color: #059669;
   text-decoration: none;
   font-weight: 500;
 }
@@ -515,72 +627,14 @@ label {
   animation: spin 1s linear infinite;
 }
 
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.google-btn {
-  width: 100%;
+.error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
   padding: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--text-primary);
-}
-
-.google-btn:hover {
-  border-color: var(--text-secondary);
-  background: var(--background);
-}
-
-.google-icon {
-  display: flex;
-  align-items: center;
-}
-
-.auth-footer {
   text-align: center;
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
-}
-
-.auth-footer p {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.auth-link {
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: 500;
-  cursor: pointer;
-  margin-left: 4px;
-}
-
-.auth-link:hover {
-  text-decoration: underline;
 }
 
 @keyframes spin {
@@ -601,6 +655,11 @@ label {
   
   .form-section {
     padding: 32px 24px;
+  }
+  
+  .language-switcher {
+    top: 10px;
+    right: 10px;
   }
 }
 </style>

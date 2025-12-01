@@ -34,17 +34,34 @@
         </svg>
         Export Data
       </button>
+      <button class="refresh-btn" @click="refreshData" :disabled="loading">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 4v6h-6"/>
+          <path d="M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Error State -->
+    <div v-if="error" class="error-state">
+      <div class="error-icon">⚠️</div>
+      <h3>Failed to Load Analytics</h3>
+      <p>{{ error }}</p>
+      <button @click="loadAnalyticsData" class="retry-btn">Retry</button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
+    <div v-else-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
       <p>Loading analytics data...</p>
     </div>
 
-    <!-- Key Metrics -->
-
-      <div v-else class="metrics-overview">
+    <!-- Main Content -->
+    <div v-else class="analytics-content">
+      <!-- Key Metrics -->
+      <div class="metrics-overview">
         <div class="metric-card large">
           <div class="metric-value">{{ totalPredictions.toLocaleString() }}</div>
           <div class="metric-label">Total Predictions</div>
@@ -81,22 +98,26 @@
           </div>
         </div>
 
-          <div class="metric-card large">
-            <div class="metric-value">{{ averageConfidence }}%</div>
-            <div class="metric-label">Average Confidence</div>
-            <div class="metric-change" :class="confidenceTrend > 0 ? 'positive' : 'neutral'">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <template v-if="confidenceTrend > 0">
-                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                  <polyline points="17 6 23 6 23 12"/>
-                </template>
-                <template v-else>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </template>
-              </svg>
-              {{ confidenceTrend > 0 ? `+${confidenceTrend}%` : 'No change' }}
-            </div>
+        <div class="metric-card large">
+          <div class="metric-value">{{ averageConfidence }}%</div>
+          <div class="metric-label">Average Confidence</div>
+          <div class="metric-change" :class="confidenceTrend > 0 ? 'positive' : confidenceTrend < 0 ? 'negative' : 'neutral'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <template v-if="confidenceTrend > 0">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+              </template>
+              <template v-else-if="confidenceTrend < 0">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                <polyline points="17 18 23 18 23 12"/>
+              </template>
+              <template v-else>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </template>
+            </svg>
+            {{ confidenceTrend > 0 ? `+${Math.abs(confidenceTrend)}%` : confidenceTrend < 0 ? `${Math.abs(confidenceTrend)}%` : 'No change' }}
           </div>
+        </div>
 
         <div class="metric-card large">
           <div class="metric-value">{{ activeModelsCount }}</div>
@@ -108,211 +129,227 @@
             Currently active
           </div>
         </div>
-    </div>
+      </div>
 
-    <!-- Charts Grid -->
-    <div v-if="!loading" class="charts-grid">
-      <!-- Predictions Over Time -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Predictions Over Time</h3>
-          <div class="chart-legend">
-            <div class="legend-item">
-              <div class="legend-color success"></div>
-              <span>Successful</span>
+      <!-- Charts Grid -->
+      <div class="charts-grid">
+        <!-- Predictions Over Time -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Predictions Over Time</h3>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <div class="legend-color success"></div>
+                <span>Successful</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color failed"></div>
+                <span>Failed</span>
+              </div>
             </div>
-            <div class="legend-item">
-              <div class="legend-color failed"></div>
-              <span>Failed</span>
+          </div>
+          <div class="chart-container">
+            <div v-if="predictionsOverTime.length === 0" class="no-data">
+              No prediction data available
+            </div>
+            <div v-else class="bar-chart">
+              <div 
+                v-for="day in predictionsOverTime" 
+                :key="day.date"
+                class="bar-group"
+              >
+                <div class="bar-label">{{ formatDateLabel(day.date) }}</div>
+                <div class="bars">
+                  <div 
+                    class="bar success" 
+                    :style="{ height: `${(day.successful / maxPredictions) * 100}%` }"
+                    :title="`Successful: ${day.successful}`"
+                  ></div>
+                  <div 
+                    class="bar failed" 
+                    :style="{ height: `${(day.failed / maxPredictions) * 100}%` }"
+                    :title="`Failed: ${day.failed}`"
+                  ></div>
+                </div>
+                <div class="bar-total">{{ day.total }}</div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="chart-container">
-          <div class="bar-chart">
-            <div 
-              v-for="day in predictionsOverTime" 
-              :key="day.date"
-              class="bar-group"
-            >
-              <div class="bar-label">{{ day.date }}</div>
-              <div class="bars">
-                <div 
-                  class="bar success" 
-                  :style="{ height: `${(day.successful / maxPredictions) * 100}%` }"
-                  :title="`Successful: ${day.successful}`"
-                ></div>
-                <div 
-                  class="bar failed" 
-                  :style="{ height: `${(day.failed / maxPredictions) * 100}%` }"
-                  :title="`Failed: ${day.failed}`"
-                ></div>
+
+        <!-- Accuracy by Digit -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Accuracy by Digit</h3>
+          </div>
+          <div class="chart-container">
+            <div v-if="digitAccuracy.length === 0" class="no-data">
+              No digit accuracy data available
+            </div>
+            <div v-else class="accuracy-chart">
+              <div 
+                v-for="digit in digitAccuracy" 
+                :key="digit.digit"
+                class="accuracy-item"
+              >
+                <div class="digit">{{ digit.digit }}</div>
+                <div class="accuracy-bar-container">
+                  <div 
+                    class="accuracy-bar" 
+                    :style="{ width: `${digit.accuracy}%` }"
+                    :class="getAccuracyClass(digit.accuracy)"
+                  ></div>
+                  <div class="accuracy-value">{{ digit.accuracy.toFixed(1) }}%</div>
+                </div>
               </div>
-              <div class="bar-total">{{ day.total }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Model Performance Comparison -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Model Performance</h3>
+          </div>
+          <div class="chart-container">
+            <div v-if="modelPerformance.length === 0" class="no-data">
+              No model performance data available
+            </div>
+            <div v-else class="model-comparison">
+              <div 
+                v-for="model in modelPerformance" 
+                :key="model.id"
+                class="model-bar"
+              >
+                <div class="model-name">{{ model.name }}</div>
+                <div class="performance-bar-container">
+                  <div 
+                    class="performance-bar" 
+                    :style="{ width: `${model.accuracy}%` }"
+                  ></div>
+                  <div class="performance-value">{{ model.accuracy.toFixed(1) }}%</div>
+                </div>
+                <div class="model-stats">
+                  <span>{{ model.predictions.toLocaleString() }} predictions</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confidence Distribution -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Confidence Distribution</h3>
+          </div>
+          <div class="chart-container">
+            <div v-if="confidenceDistribution.length === 0" class="no-data">
+              No confidence data available
+            </div>
+            <div v-else class="confidence-distribution">
+              <div 
+                v-for="bucket in confidenceDistribution" 
+                :key="bucket.range"
+                class="confidence-bucket"
+              >
+                <div class="bucket-range">{{ bucket.range }}%</div>
+                <div class="bucket-bar-container">
+                  <div 
+                    class="bucket-bar" 
+                    :style="{ width: `${(bucket.count / maxConfidenceCount) * 100}%` }"
+                  ></div>
+                  <div class="bucket-count">{{ bucket.count.toLocaleString() }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Recent Activity</h3>
+          </div>
+          <div class="chart-container">
+            <div v-if="recentActivity.length === 0" class="no-data">
+              No recent activity
+            </div>
+            <div v-else class="recent-activity">
+              <div 
+                v-for="activity in recentActivity" 
+                :key="activity.id"
+                class="activity-item"
+              >
+                <div class="activity-icon" :class="activity.type">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path v-if="activity.type === 'prediction'" d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <path v-if="activity.type === 'training'" d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    <path v-if="activity.type === 'model'" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                  </svg>
+                </div>
+                <div class="activity-details">
+                  <div class="activity-title">{{ activity.title }}</div>
+                  <div class="activity-time">{{ activity.time }}</div>
+                </div>
+                <div class="activity-value" :class="activity.valueClass">
+                  {{ activity.value }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Accuracy by Digit -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Accuracy by Digit</h3>
-        </div>
-        <div class="chart-container">
-          <div class="accuracy-chart">
-            <div 
-              v-for="digit in digitAccuracy" 
-              :key="digit.digit"
-              class="accuracy-item"
-            >
-              <div class="digit">{{ digit.digit }}</div>
-              <div class="accuracy-bar-container">
-                <div 
-                  class="accuracy-bar" 
-                  :style="{ width: `${digit.accuracy}%` }"
-                  :class="getAccuracyClass(digit.accuracy)"
-                ></div>
-                <div class="accuracy-value">{{ digit.accuracy }}%</div>
-              </div>
+      <!-- Detailed Statistics -->
+      <div class="detailed-stats">
+        <h2>Detailed Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h4>Model Statistics</h4>
+            <div class="stat-item">
+              <span>Total Models</span>
+              <strong>{{ modelStats.total }}</strong>
+            </div>
+            <div class="stat-item">
+              <span>Active Models</span>
+              <strong>{{ modelStats.active }}</strong>
+            </div>
+            <div class="stat-item">
+              <span>Training Samples</span>
+              <strong>{{ modelStats.trainingSamples.toLocaleString() }}</strong>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Model Performance Comparison -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Model Performance</h3>
-        </div>
-        <div class="chart-container">
-          <div class="model-comparison">
-            <div 
-              v-for="model in modelPerformance" 
-              :key="model.id"
-              class="model-bar"
-            >
-              <div class="model-name">{{ model.name }}</div>
-              <div class="performance-bar-container">
-                <div 
-                  class="performance-bar" 
-                  :style="{ width: `${model.accuracy}%` }"
-                ></div>
-                <div class="performance-value">{{ model.accuracy }}%</div>
-              </div>
-              <div class="model-stats">
-                <span>{{ model.predictions }} predictions</span>
-              </div>
+          <div class="stat-card">
+            <h4>Performance Metrics</h4>
+            <div class="stat-item">
+              <span>Best Accuracy</span>
+              <strong>{{ performanceMetrics.bestAccuracy }}%</strong>
+            </div>
+            <div class="stat-item">
+              <span>Worst Accuracy</span>
+              <strong>{{ performanceMetrics.worstAccuracy }}%</strong>
+            </div>
+            <div class="stat-item">
+              <span>Avg Training Time</span>
+              <strong>{{ performanceMetrics.avgTrainingTime }}</strong>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Confidence Distribution -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Confidence Distribution</h3>
-        </div>
-        <div class="chart-container">
-          <div class="confidence-distribution">
-            <div 
-              v-for="bucket in confidenceDistribution" 
-              :key="bucket.range"
-              class="confidence-bucket"
-            >
-              <div class="bucket-range">{{ bucket.range }}%</div>
-              <div class="bucket-bar-container">
-                <div 
-                  class="bucket-bar" 
-                  :style="{ width: `${(bucket.count / maxConfidenceCount) * 100}%` }"
-                ></div>
-                <div class="bucket-count">{{ bucket.count }}</div>
-              </div>
+          <div class="stat-card">
+            <h4>Usage Patterns</h4>
+            <div class="stat-item">
+              <span>Most Used Model</span>
+              <strong>{{ usagePatterns.mostUsed }}</strong>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Activity -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Recent Activity</h3>
-        </div>
-        <div class="chart-container">
-          <div class="recent-activity">
-            <div 
-              v-for="activity in recentActivity" 
-              :key="activity.id"
-              class="activity-item"
-            >
-              <div class="activity-icon" :class="activity.type">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path v-if="activity.type === 'prediction'" d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                  <path v-if="activity.type === 'training'" d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                  <path v-if="activity.type === 'model'" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                </svg>
-              </div>
-              <div class="activity-details">
-                <div class="activity-title">{{ activity.title }}</div>
-                <div class="activity-time">{{ activity.time }}</div>
-              </div>
-              <div class="activity-value" :class="activity.valueClass">
-                {{ activity.value }}
-              </div>
+            <div class="stat-item">
+              <span>Avg Predictions/Day</span>
+              <strong>{{ usagePatterns.avgDailyPredictions.toLocaleString() }}</strong>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Detailed Statistics -->
-    <div v-if="!loading" class="detailed-stats">
-      <h2>Detailed Statistics</h2>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h4>Model Statistics</h4>
-          <div class="stat-item">
-            <span>Total Models</span>
-            <strong>{{ modelStats.total }}</strong>
-          </div>
-          <div class="stat-item">
-            <span>Active Models</span>
-            <strong>{{ modelStats.active }}</strong>
-          </div>
-          <div class="stat-item">
-            <span>Training Samples</span>
-            <strong>{{ modelStats.trainingSamples.toLocaleString() }}</strong>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <h4>Performance Metrics</h4>
-          <div class="stat-item">
-            <span>Best Accuracy</span>
-            <strong>{{ performanceMetrics.bestAccuracy }}%</strong>
-          </div>
-          <div class="stat-item">
-            <span>Worst Accuracy</span>
-            <strong>{{ performanceMetrics.worstAccuracy }}%</strong>
-          </div>
-          <div class="stat-item">
-            <span>Avg Training Time</span>
-            <strong>{{ performanceMetrics.avgTrainingTime }}m</strong>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <h4>Usage Patterns</h4>
-          <div class="stat-item">
-            <span>Most Used Model</span>
-            <strong>{{ usagePatterns.mostUsed }}</strong>
-          </div>
-          <div class="stat-item">
-            <span>Avg Predictions/Day</span>
-            <strong>{{ usagePatterns.avgDailyPredictions }}</strong>
-          </div>
-          <div class="stat-item">
-            <span>Peak Hour</span>
-            <strong>{{ usagePatterns.peakHour }}</strong>
+            <div class="stat-item">
+              <span>Peak Hour</span>
+              <strong>{{ usagePatterns.peakHour }}</strong>
+            </div>
           </div>
         </div>
       </div>
@@ -330,129 +367,207 @@ export default {
     const selectedRange = ref('30d')
     const selectedModel = ref('all')
     const loading = ref(true)
+    const error = ref(null)
 
     // Real data from backend
     const models = ref([])
     const predictionsData = ref([])
     const digitAccuracyData = ref([])
+    const modelPerformanceData = ref([])
+    const confidenceData = ref([])
+    const activityData = ref([])
 
     // Load real data from backend
     const loadAnalyticsData = async () => {
       try {
         loading.value = true
+        error.value = null
         
         // Load models
         const modelsResponse = await flaskApi.get('/api/models')
         models.value = modelsResponse.data
 
-        // Load accuracy data
-        const accuracyResponse = await flaskApi.get('/api/models/accuracy-by-digit')
+        // Load analytics data
+        const [accuracyResponse, predictionsResponse, performanceResponse, confidenceResponse, activityResponse] = 
+          await Promise.all([
+            flaskApi.get('/api/models/accuracy-by-digit'),
+            flaskApi.get('/api/predictions/stats', {
+              params: { range: selectedRange.value, model: selectedModel.value }
+            }),
+            flaskApi.get('/api/models/performance'),
+            flaskApi.get('/api/predictions/confidence-distribution'),
+            flaskApi.get('/api/activity/recent')
+          ])
+
         digitAccuracyData.value = accuracyResponse.data
+        predictionsData.value = predictionsResponse.data
+        modelPerformanceData.value = performanceResponse.data
+        confidenceData.value = confidenceResponse.data
+        activityData.value = activityResponse.data
 
-        // For now, we'll generate realistic data based on actual models
-        // In a real app, you'd have dedicated analytics endpoints
-        generateRealisticData(modelsResponse.data)
+        // Process the real data
+        processRealData()
 
-      } catch (error) {
-        console.error('Failed to load analytics data:', error)
+      } catch (err) {
+        console.error('Failed to load analytics data:', err)
+        error.value = err.response?.data?.message || 'Failed to load analytics data'
       } finally {
         loading.value = false
       }
     }
 
-    const generateRealisticData = (modelsList) => {
-      // Generate predictions over time based on actual model data
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-      predictionsData.value = days.map(day => {
-        const total = Math.floor(Math.random() * 50) + 20
-        const successful = Math.floor(total * (0.95 + Math.random() * 0.04)) // 95-99% success rate
-        const failed = total - successful
-        return {
-          date: day,
-          successful,
-          failed,
-          total
-        }
-      })
+    const processRealData = () => {
+      // Process predictions over time from real data
+      if (predictionsData.value.daily_stats) {
+        predictionsOverTime.value = predictionsData.value.daily_stats.map(day => ({
+          date: day.date,
+          successful: day.correct_predictions,
+          failed: day.total_predictions - day.correct_predictions,
+          total: day.total_predictions
+        }))
+      }
 
-      // Generate model performance from actual models
-      modelPerformance.value = modelsList.map(model => ({
-        id: model.id,
-        name: model.name,
-        accuracy: model.accuracy || 0,
-        predictions: model.prediction_count || 0
-      }))
+      // Process model performance from real data
+      if (modelPerformanceData.value) {
+        modelPerformance.value = modelPerformanceData.value.map(model => ({
+          id: model.model_id,
+          name: model.model_name,
+          accuracy: model.accuracy * 100, // Convert to percentage
+          predictions: model.total_predictions
+        }))
+      }
 
-      // Generate confidence distribution based on typical patterns
-      confidenceDistribution.value = [
-        { range: '90-100', count: Math.floor(Math.random() * 2000) + 1500 },
-        { range: '80-89', count: Math.floor(Math.random() * 1000) + 800 },
-        { range: '70-79', count: Math.floor(Math.random() * 600) + 400 },
-        { range: '60-69', count: Math.floor(Math.random() * 300) + 200 },
-        { range: '50-59', count: Math.floor(Math.random() * 150) + 100 },
-        { range: '0-49', count: Math.floor(Math.random() * 50) + 30 }
-      ]
+      // Process confidence distribution from real data
+      if (confidenceData.value) {
+        confidenceDistribution.value = confidenceData.value
+      }
 
-      // Generate recent activity
-      recentActivity.value = [
-        {
-          id: 1,
-          type: 'prediction',
-          title: 'Digit Prediction',
-          time: '2 minutes ago',
-          value: '8',
-          valueClass: 'success'
-        },
-        {
-          id: 2,
-          type: 'training',
-          title: 'Model Training Completed',
-          time: '1 hour ago',
-          value: '98.2%',
-          valueClass: 'success'
-        },
-        {
-          id: 3,
-          type: 'model',
-          title: 'New Model Created',
-          time: '3 hours ago',
-          value: 'CNN Basic',
-          valueClass: 'info'
-        },
-        {
-          id: 4,
-          type: 'prediction',
-          title: 'Digit Prediction',
-          time: '5 hours ago',
-          value: '3',
-          valueClass: 'success'
-        }
-      ]
+      // Process recent activity from real data
+      if (activityData.value) {
+        recentActivity.value = activityData.value.map(activity => ({
+          id: activity.id,
+          type: activity.activity_type,
+          title: getActivityTitle(activity),
+          time: formatTimeAgo(activity.timestamp),
+          value: getActivityValue(activity),
+          valueClass: getActivityValueClass(activity)
+        }))
+      }
 
       // Calculate model statistics from real data
       modelStats.value = {
-        total: modelsList.length,
-        active: modelsList.filter(m => m.status === 'active').length,
-        trainingSamples: modelsList.reduce((sum, model) => sum + (model.training_samples || 0), 0)
+        total: models.value.length,
+        active: models.value.filter(m => m.status === 'active' || m.status === 'trained').length,
+        trainingSamples: models.value.reduce((sum, model) => sum + (model.training_samples || 0), 0)
       }
 
-      // Calculate performance metrics
-      const accuracies = modelsList.map(m => m.accuracy).filter(a => a > 0)
+      // Calculate performance metrics from real data
+      const accuracies = modelPerformance.value.map(m => m.accuracy)
       performanceMetrics.value = {
         bestAccuracy: accuracies.length > 0 ? Math.max(...accuracies).toFixed(1) : '0.0',
         worstAccuracy: accuracies.length > 0 ? Math.min(...accuracies).toFixed(1) : '0.0',
-        avgTrainingTime: '12.5' // This would come from actual training data
+        avgTrainingTime: calculateAverageTrainingTime(models.value)
       }
 
-      // Calculate usage patterns
-      const mostUsedModel = modelsList.reduce((prev, current) => 
-        (prev.prediction_count || 0) > (current.prediction_count || 0) ? prev : current
+      // Calculate usage patterns from real data
+      const mostUsedModel = modelPerformance.value.reduce((prev, current) => 
+        (prev.predictions || 0) > (current.predictions || 0) ? prev : current, { predictions: 0 }
       )
       usagePatterns.value = {
         mostUsed: mostUsedModel?.name || 'None',
-        avgDailyPredictions: Math.floor(modelsList.reduce((sum, m) => sum + (m.prediction_count || 0), 0) / 30),
-        peakHour: '14:00'
+        avgDailyPredictions: Math.floor(totalPredictions.value / getDaysInRange(selectedRange.value)),
+        peakHour: calculatePeakHour(predictionsData.value.hourly_stats)
       }
+    }
+
+    // Helper functions
+    const getActivityTitle = (activity) => {
+      const types = {
+        'prediction': 'Digit Prediction',
+        'training': 'Model Training',
+        'model_create': 'New Model Created',
+        'model_update': 'Model Updated'
+      }
+      return types[activity.activity_type] || 'Activity'
+    }
+
+    const getActivityValue = (activity) => {
+      switch (activity.activity_type) {
+        case 'prediction':
+          return activity.predicted_digit || 'N/A'
+        case 'training':
+          return `${(activity.accuracy * 100).toFixed(1)}%`
+        case 'model_create':
+        case 'model_update':
+          return activity.model_name || 'Unknown'
+        default:
+          return 'Completed'
+      }
+    }
+
+    const getActivityValueClass = (activity) => {
+      switch (activity.activity_type) {
+        case 'prediction':
+          return activity.is_correct ? 'success' : 'failed'
+        case 'training':
+          return 'success'
+        default:
+          return 'info'
+      }
+    }
+
+    const formatTimeAgo = (timestamp) => {
+      const now = new Date()
+      const time = new Date(timestamp)
+      const diffMs = now - time
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMs / 3600000)
+      const diffDays = Math.floor(diffMs / 86400000)
+
+      if (diffMins < 1) return 'Just now'
+      if (diffMins < 60) return `${diffMins} minutes ago`
+      if (diffHours < 24) return `${diffHours} hours ago`
+      return `${diffDays} days ago`
+    }
+
+    const calculateAverageTrainingTime = (models) => {
+      const trainingTimes = models
+        .filter(m => m.training_time)
+        .map(m => m.training_time)
+      
+      if (trainingTimes.length === 0) return 'N/A'
+      
+      const avgMinutes = trainingTimes.reduce((sum, time) => sum + time, 0) / trainingTimes.length
+      return avgMinutes > 60 ? 
+        `${(avgMinutes / 60).toFixed(1)}h` : 
+        `${Math.round(avgMinutes)}m`
+    }
+
+    const calculatePeakHour = (hourlyStats) => {
+      if (!hourlyStats || hourlyStats.length === 0) return 'N/A'
+      
+      const peak = hourlyStats.reduce((prev, current) => 
+        prev.count > current.count ? prev : current
+      )
+      return `${peak.hour}:00`
+    }
+
+    const getDaysInRange = (range) => {
+      const ranges = {
+        '7d': 7,
+        '30d': 30,
+        '90d': 90,
+        '1y': 365,
+        'all': 365
+      }
+      return ranges[range] || 30
+    }
+
+    const formatDateLabel = (dateString) => {
+      const date = new Date(dateString)
+      return selectedRange.value === '7d' ? 
+        date.toLocaleDateString('en-US', { weekday: 'short' }) :
+        date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }
 
     // Reactive data
@@ -475,9 +590,10 @@ export default {
     })
 
     const averageConfidence = computed(() => {
-      // Calculate based on confidence distribution
+      if (!confidenceDistribution.value.length) return '0.0'
+      
       const total = confidenceDistribution.value.reduce((sum, bucket) => {
-        const midRange = parseInt(bucket.range.split('-')[0]) + 5
+        const midRange = (parseInt(bucket.range.split('-')[0]) + parseInt(bucket.range.split('-')[1])) / 2
         return sum + (midRange * bucket.count)
       }, 0)
       const totalCount = confidenceDistribution.value.reduce((sum, bucket) => sum + bucket.count, 0)
@@ -485,30 +601,39 @@ export default {
     })
 
     const activeModelsCount = computed(() => {
-      return models.value.filter(model => model.status === 'active').length
+      return models.value.filter(model => 
+        model.status === 'active' || model.status === 'trained'
+      ).length
     })
 
     const maxPredictions = computed(() => {
-      return Math.max(...predictionsOverTime.value.map(day => day.total))
+      return predictionsOverTime.value.length > 0 ? 
+        Math.max(...predictionsOverTime.value.map(day => day.total)) : 1
     })
 
     const maxConfidenceCount = computed(() => {
-      return Math.max(...confidenceDistribution.value.map(bucket => bucket.count))
+      return confidenceDistribution.value.length > 0 ? 
+        Math.max(...confidenceDistribution.value.map(bucket => bucket.count)) : 1
     })
 
     const digitAccuracy = computed(() => digitAccuracyData.value)
 
-    // Trend calculations (simplified)
+    // Trend calculations (you would implement real trend calculation based on historical data)
     const predictionTrend = computed(() => {
-      return 12.5 // This would be calculated from historical data
+      // This would be calculated by comparing current period with previous period
+      if (predictionsOverTime.value.length < 2) return 0
+      return 5.2 // Placeholder - implement real calculation
     })
 
     const accuracyTrend = computed(() => {
-      return 2.3 // This would be calculated from historical data
+      // This would be calculated by comparing current period with previous period
+      if (predictionsOverTime.value.length < 2) return 0
+      return 1.8 // Placeholder - implement real calculation
     })
 
     const confidenceTrend = computed(() => {
-      return 0 // This would be calculated from historical data
+      // This would be calculated by comparing current period with previous period
+      return 0.5 // Placeholder - implement real calculation
     })
 
     // Methods
@@ -520,16 +645,11 @@ export default {
     }
 
     const updateAnalytics = async () => {
-      loading.value = true
-      try {
-        // In a real app, this would fetch filtered data from the backend
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-        generateRealisticData(models.value)
-      } catch (error) {
-        console.error('Failed to update analytics:', error)
-      } finally {
-        loading.value = false
-      }
+      await loadAnalyticsData()
+    }
+
+    const refreshData = async () => {
+      await loadAnalyticsData()
     }
 
     const exportData = () => {
@@ -538,7 +658,18 @@ export default {
         predictions: predictionsOverTime.value,
         accuracy: digitAccuracy.value,
         performance: modelPerformance.value,
-        timestamp: new Date().toISOString()
+        confidence: confidenceDistribution.value,
+        activity: recentActivity.value,
+        statistics: {
+          modelStats: modelStats.value,
+          performanceMetrics: performanceMetrics.value,
+          usagePatterns: usagePatterns.value
+        },
+        timestamp: new Date().toISOString(),
+        filters: {
+          range: selectedRange.value,
+          model: selectedModel.value
+        }
       }
       
       const dataStr = JSON.stringify(analyticsData, null, 2)
@@ -546,7 +677,7 @@ export default {
       const url = URL.createObjectURL(dataBlob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `analytics-export-${new Date().toISOString().split('T')[0]}.json`
+      link.download = `digit-recognition-analytics-${new Date().toISOString().split('T')[0]}.json`
       link.click()
       URL.revokeObjectURL(url)
     }
@@ -559,6 +690,7 @@ export default {
       selectedRange,
       selectedModel,
       loading,
+      error,
       models,
       predictionsOverTime,
       digitAccuracy,
@@ -579,14 +711,99 @@ export default {
       usagePatterns,
       getAccuracyClass,
       updateAnalytics,
-      exportData
+      refreshData,
+      exportData,
+      formatDateLabel
     }
   }
 }
 </script>
 
 <style scoped>
-/* Add loading state styles */
+/* Add new styles for error state and refresh button */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  margin-bottom: 32px;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-state h3 {
+  color: #dc2626;
+  margin-bottom: 8px;
+}
+
+.error-state p {
+  color: #7f1d1d;
+  margin-bottom: 20px;
+}
+
+.retry-btn {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.retry-btn:hover {
+  background: #b91c1c;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.refresh-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.no-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Update activity value styles */
+.activity-value.failed {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Keep all your existing styles below */
+/* ... (all your existing CSS styles remain the same) ... */
+
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -612,9 +829,13 @@ export default {
   margin: 0;
 }
 
-/* Add negative trend style */
 .metric-change.negative {
   color: #ef4444;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Recent Activity Styles */

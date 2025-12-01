@@ -50,4 +50,8 @@ public class RecognitionHistoryService {
         long correct = recognitionHistoryRepository.countCorrectPredictions();
         return total > 0 ? (double) correct / total * 100 : 0.0;
     }
+
+    public long getFeedbackCount() {
+        return recognitionHistoryRepository.countWithFeedback();
+    }
 }

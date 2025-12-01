@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 import numpy as np
 import tensorflow as tf
 import time
@@ -7,7 +9,7 @@ import os
 import json
 import uuid
 import threading
-from datetime import datetime, timedelta  # Added timedelta here
+from datetime import datetime, timedelta
 from scipy.ndimage import zoom
 import psutil
 import requests
@@ -16,8 +18,15 @@ import subprocess
 app = Flask(__name__)
 CORS(app)
 
+# MySQL Database Configuration - UPDATE THESE WITH YOUR CREDENTIALS
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost/digiscrib'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize SQLAlchemy
+db = SQLAlchemy(app)
+
 # Spring Boot backend configuration
-SPRING_BOOT_BASE_URL = "http://10.63.91.4:8080"  # Change to your Spring Boot URL
+SPRING_BOOT_BASE_URL = "http://10.63.91.4:8080"
 
 # Model Manager Class
 class ModelManager:
@@ -155,7 +164,7 @@ class ModelManager:
 # Global model manager instance
 model_manager = ModelManager()
 
-# Load your trained MNIST model - use the correct filename
+# Load your trained MNIST model
 model_path = 'models/digiscrib_mnist_cnn_v20251113_230519.h5'
 
 try:
@@ -194,7 +203,7 @@ def train_model_async(model_id, training_config):
             'training_samples': 60000
         })
         
-        # Create actual model file (you can replace this with real training)
+        # Create actual model file
         from tensorflow.keras import layers, models
         from tensorflow.keras.datasets import mnist
         from tensorflow.keras.utils import to_categorical
@@ -290,7 +299,281 @@ def initialize_sample_models():
 # Initialize models on startup
 initialize_sample_models()
 
-# Model Management Routes
+# =============================================================================
+# DATABASE TESTING ENDPOINTS
+# =============================================================================
+
+@app.route('/api/test-db', methods=['GET'])
+def test_database():
+    """Test MySQL database connection"""
+    try:
+        # Test basic connection
+        db.session.execute(text('SELECT 1'))
+        
+        # Try to get user count
+        user_count_result = db.session.execute(text('SELECT COUNT(*) as count FROM users')).fetchone()
+        user_count = user_count_result[0] if user_count_result else 0
+        
+        # Try to get table structure
+        table_info = db.session.execute(text('DESCRIBE users')).fetchall()
+        columns = [column[0] for column in table_info]
+        
+        # Try to get a few sample users
+        sample_users = db.session.execute(text('SELECT * FROM users LIMIT 5')).fetchall()
+        
+        users_list = []
+        for user in sample_users:
+            user_dict = {}
+            for i, column in enumerate(columns):
+                # Handle datetime objects
+                if hasattr(user[i], 'isoformat'):
+                    user_dict[column] = user[i].isoformat()
+                else:
+                    user_dict[column] = user[i]
+            users_list.append(user_dict)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'MySQL database connected successfully!',
+            'user_count': user_count,
+            'table_columns': columns,
+            'sample_users': users_list,
+            'database_url': app.config['SQLALCHEMY_DATABASE_URI']
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Database connection failed: {str(e)}',
+            'database_url': app.config.get('SQLALCHEMY_DATABASE_URI', 'Not configured'),
+            'help': 'Make sure MySQL is running and the database credentials are correct'
+        }), 500
+
+@app.route('/api/debug-db', methods=['GET'])
+def debug_database():
+    """Debug MySQL database connection"""
+    try:
+        # Test basic connection
+        db.session.execute(text('SELECT 1'))
+        
+        # Check if users table exists
+        table_exists = db.session.execute(text(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'users'"
+        )).fetchone()[0]
+        
+        if table_exists:
+            # Get table structure
+            table_info = db.session.execute(text('DESCRIBE users')).fetchall()
+            columns = [column[0] for column in table_info]
+            
+            # Get sample data
+            sample_users = db.session.execute(text('SELECT * FROM users LIMIT 5')).fetchall()
+            
+            users_data = []
+            for user in sample_users:
+                user_dict = {}
+                for i, column in enumerate(columns):
+                    if hasattr(user[i], 'isoformat'):
+                        user_dict[column] = user[i].isoformat()
+                    else:
+                        user_dict[column] = user[i]
+                users_data.append(user_dict)
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'MySQL connection successful and users table exists!',
+                'table_columns': columns,
+                'sample_data': users_data,
+                'user_count': len(sample_users)
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Users table does not exist in the database',
+                'database': 'Check if your database has a users table'
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Database connection failed: {str(e)}',
+            'help': 'Check your MySQL credentials and ensure MySQL server is running'
+        }), 500
+
+# =============================================================================
+# REAL USERS ROUTES - Updated to use MySQL
+# =============================================================================
+
+@app.route('/api/admin/users/real', methods=['GET'])
+def get_real_users():
+    """Get real users from MySQL database for admin panel"""
+    try:
+        print("🔍 [DEBUG] /api/admin/users/real endpoint called - Querying MySQL database")
+        
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        
+        print(f"🔍 [DEBUG] Page: {page}, Per page: {per_page}")
+        
+        # Try to get real users from MySQL database
+        try:
+            # First, let's discover the table structure
+            table_info = db.session.execute(text('DESCRIBE users')).fetchall()
+            columns = [column[0] for column in table_info]
+            print(f"🔍 [DEBUG] Users table columns: {columns}")
+            
+            # Build dynamic SQL query based on available columns
+            select_fields = []
+            if 'id' in columns:
+                select_fields.append('id')
+            if 'username' in columns or 'name' in columns or 'full_name' in columns:
+                # Try different possible name fields
+                if 'full_name' in columns:
+                    select_fields.append('COALESCE(full_name, username) as name')
+                elif 'name' in columns:
+                    select_fields.append('name')
+                else:
+                    select_fields.append('username as name')
+            else:
+                select_fields.append('email as name')
+            
+            if 'email' in columns:
+                select_fields.append('email')
+            else:
+                select_fields.append('"no-email@example.com" as email')
+                
+            if 'role' in columns:
+                select_fields.append('COALESCE(role, "user") as role')
+            else:
+                select_fields.append('"user" as role')
+                
+            if 'prediction_count' in columns:
+                select_fields.append('COALESCE(prediction_count, 0) as predictions')
+            else:
+                select_fields.append('0 as predictions')
+                
+            if 'last_login' in columns:
+                select_fields.append('COALESCE(last_login, created_at) as lastActive')
+            elif 'last_active' in columns:
+                select_fields.append('last_active as lastActive')
+            elif 'created_at' in columns:
+                select_fields.append('created_at as lastActive')
+            else:
+                select_fields.append('NOW() as lastActive')
+                
+            if 'is_active' in columns:
+                select_fields.append('is_active')
+            elif 'status' in columns:
+                select_fields.append('CASE WHEN status = "active" THEN 1 ELSE 0 END as is_active')
+            else:
+                select_fields.append('1 as is_active')
+                
+            if 'created_at' in columns:
+                select_fields.append('created_at')
+            
+            # Build the SQL query
+            sql_query = f"""
+            SELECT {', '.join(select_fields)}
+            FROM users 
+            ORDER BY id DESC
+            LIMIT :limit OFFSET :offset
+            """
+            
+            print(f"🔍 [DEBUG] SQL Query: {sql_query}")
+            
+            # Calculate offset for pagination
+            offset = (page - 1) * per_page
+            
+            # Execute query to get users
+            result = db.session.execute(text(sql_query), {
+                'limit': per_page,
+                'offset': offset
+            })
+            
+            # Get total count
+            count_result = db.session.execute(text("SELECT COUNT(*) as total FROM users"))
+            total_users = count_result.fetchone()[0]
+            
+            # Format results
+            real_users = []
+            for row in result:
+                user_data = {
+                    'id': row[0],
+                    'name': row[1],
+                    'email': row[2],
+                    'role': row[3],
+                    'predictions': row[4],
+                    'lastActive': row[5].isoformat() if hasattr(row[5], 'isoformat') else datetime.now().isoformat(),
+                    'status': 'active' if row[6] else 'inactive'
+                }
+                real_users.append(user_data)
+            
+            response_data = {
+                'users': real_users,
+                'total': total_users,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': (total_users + per_page - 1) // per_page
+            }
+            
+            print(f"✅ [DEBUG] Successfully retrieved {len(real_users)} real users from MySQL database")
+            return jsonify(response_data)
+            
+        except Exception as db_error:
+            print(f"❌ [DEBUG] Database query failed: {db_error}")
+            # Fallback to sample data
+            return get_fallback_users(page, per_page)
+                
+    except Exception as e:
+        print(f"❌ [DEBUG] ERROR in get_real_users: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Fallback to sample data if database connection fails
+        print("🔄 [DEBUG] Falling back to sample data")
+        return get_fallback_users(page, per_page)
+
+def get_fallback_users(page, per_page):
+    """Fallback function that returns sample data if database is unavailable"""
+    sample_users = [
+        {
+            "id": 1001,
+            "name": "Database Connection Issue",
+            "email": "check-database@example.com",
+            "role": "user",
+            "predictions": 0,
+            "lastActive": datetime.now().isoformat(),
+            "status": "active"
+        },
+        {
+            "id": 1002,
+            "name": "Update MySQL Configuration", 
+            "email": "configure-db@example.com",
+            "role": "admin",
+            "predictions": 0,
+            "lastActive": datetime.now().isoformat(),
+            "status": "active"
+        }
+    ]
+    
+    # Apply pagination
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_users = sample_users[start_idx:end_idx]
+    
+    return jsonify({
+        'users': paginated_users,
+        'total': len(sample_users),
+        'page': page,
+        'per_page': per_page,
+        'total_pages': 1
+    })
+
+# =============================================================================
+# MODEL MANAGEMENT ROUTES
+# =============================================================================
+
 @app.route('/api/models', methods=['GET'])
 def get_models():
     """Get all models"""
@@ -305,10 +588,22 @@ def create_model():
     """Create a new model"""
     try:
         data = request.get_json()
+        
+        if data is None:
+            return jsonify({'error': 'No JSON data received'}), 400
+        
+        # Check for required fields
+        required_fields = ['name', 'architecture']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Create the model
         model = model_manager.create_model(data)
         return jsonify(model)
+        
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 @app.route('/api/models/<model_id>/activate', methods=['POST'])
 def activate_model(model_id):
@@ -371,7 +666,6 @@ def get_training_progress(model_id):
 def get_accuracy_by_digit():
     """Get accuracy breakdown by digit"""
     try:
-        # Realistic accuracy data
         accuracy_data = [
             {'digit': '0', 'accuracy': 99.2},
             {'digit': '1', 'accuracy': 99.8},
@@ -396,7 +690,6 @@ def get_model_details(model_id):
         if not model:
             return jsonify({'error': 'Model not found'}), 404
         
-        # Add additional details
         details = {
             **model,
             'model_size': os.path.getsize(model['file_path']) if os.path.exists(model['file_path']) else 0,
@@ -429,7 +722,272 @@ def delete_model(model_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Your existing prediction route (updated to track predictions)
+# =============================================================================
+# ADMIN ROUTES
+# =============================================================================
+
+@app.route('/api/admin/users', methods=['GET'])
+def get_admin_users():
+    """Get all users for admin panel (legacy endpoint)"""
+    try:
+        # Return enhanced user data for backward compatibility
+        response = get_real_users()
+        return response
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/users', methods=['POST'])
+def create_admin_user():
+    """Create user from admin panel"""
+    try:
+        data = request.get_json()
+        
+        if not data.get('name') or not data.get('email'):
+            return jsonify({'error': 'Name and email are required'}), 400
+        
+        # Create new user with realistic data
+        new_user = {
+            "id": int(time.time()),
+            "name": data.get('name'),
+            "email": data.get('email'),
+            "role": data.get('role', 'user'),
+            "predictions": 0,
+            "lastActive": datetime.now().isoformat(),
+            "status": "active",
+            "createdAt": datetime.now().isoformat(),
+            "lastLogin": datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            "message": "User created successfully",
+            "user": new_user
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/users/<user_id>', methods=['PUT'])
+def update_admin_user(user_id):
+    """Update user from admin panel"""
+    try:
+        data = request.get_json()
+        
+        if not data.get('name') or not data.get('email'):
+            return jsonify({'error': 'Name and email are required'}), 400
+        
+        updated_user = {
+            "id": int(user_id),
+            "name": data.get('name'),
+            "email": data.get('email'),
+            "role": data.get('role', 'user'),
+            "status": data.get('status', 'active'),
+            "predictions": data.get('predictions', 0),
+            "lastActive": data.get('lastActive', datetime.now().isoformat())
+        }
+        
+        return jsonify({
+            "message": "User updated successfully",
+            "user": updated_user
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/users/<user_id>', methods=['DELETE'])
+def delete_admin_user(user_id):
+    """Delete user from admin panel"""
+    try:
+        return jsonify({
+            "message": f"User {user_id} deleted successfully"
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/analytics', methods=['GET'])
+def get_admin_analytics():
+    """Get analytics data for admin panel"""
+    try:
+        analytics_data = {
+            "topModels": [
+                {"id": 1, "name": "Vision Transformer", "accuracy": 98.1, "predictions": 4500, "trend": 2.3, "rank": 1},
+                {"id": 2, "name": "ResNet Advanced", "accuracy": 97.8, "predictions": 3200, "trend": 1.2, "rank": 2},
+                {"id": 3, "name": "CNN Basic", "accuracy": 96.2, "predictions": 8450, "trend": -0.5, "rank": 3}
+            ],
+            "userLocations": [
+                {"country": "United States", "users": 45, "percentage": 32},
+                {"country": "United Kingdom", "users": 28, "percentage": 20},
+                {"country": "Germany", "users": 22, "percentage": 16},
+                {"country": "Canada", "users": 15, "percentage": 11},
+                {"country": "Australia", "users": 12, "percentage": 8},
+                {"country": "France", "users": 8, "percentage": 6},
+                {"country": "Japan", "users": 6, "percentage": 4},
+                {"country": "Other", "users": 4, "percentage": 3}
+            ],
+            "kpis": {
+                "avgSessionDuration": 8.5,
+                "bounceRate": 12.3,
+                "conversionRate": 4.2,
+                "retentionRate": 78.5
+            },
+            "usageTrends": {
+                "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+                "predictions": [1200, 1900, 1500, 2100, 1800, 2400],
+                "users": [40, 60, 45, 70, 55, 80]
+            }
+        }
+        
+        return jsonify(analytics_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/settings', methods=['GET'])
+def get_admin_settings():
+    """Get admin settings"""
+    try:
+        settings = {
+            "appName": "DigiScrib",
+            "maxFileSize": 10,
+            "allowRegistrations": True,
+            "confidenceThreshold": 80,
+            "retrainInterval": "weekly", 
+            "sessionTimeout": 30,
+            "maxLoginAttempts": 5,
+            "requireEmailVerification": True,
+            "backupFrequency": "weekly",
+            "retainBackups": 30
+        }
+        return jsonify(settings)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/settings', methods=['POST'])
+def save_admin_settings():
+    """Save admin settings"""
+    try:
+        data = request.get_json()
+        return jsonify({
+            "message": "Settings saved successfully",
+            "settings": data
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/system/health', methods=['GET'])
+def get_admin_system_health():
+    """Get system health information for admin panel"""
+    try:
+        health_data = {
+            "cpu": 45.5, 
+            "memory": 62.3, 
+            "disk": 25.1,
+            "responseTime": 45,
+            "uptime": "99.9%",
+            "errorRate": 0.2,
+            "dbConnections": 24,
+            "dbQueryTime": 12,
+            "dbSize": 245
+        }
+        return jsonify(health_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/stats', methods=['GET'])
+def get_admin_stats():
+    """Get admin statistics"""
+    try:
+        models = model_manager.get_all_models()
+        total_predictions = sum(model.get('prediction_count', 0) for model in models)
+        
+        accuracies = [model.get('accuracy', 0) for model in models if model.get('accuracy', 0) > 0]
+        avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 95.0
+        
+        stats_data = {
+            "totalUsers": 142,
+            "totalPredictions": total_predictions,
+            "systemAccuracy": round(avg_accuracy, 1),
+            "storageUsed": 12.5
+        }
+        
+        return jsonify(stats_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/models/<model_id>/toggle', methods=['POST'])
+def toggle_admin_model_status(model_id):
+    """Toggle model active status from admin panel"""
+    try:
+        model = model_manager.get_model(model_id)
+        if not model:
+            return jsonify({'error': 'Model not found'}), 404
+        
+        if model['status'] == 'active':
+            model_manager.activate_model(None)
+            message = "Model deactivated"
+        else:
+            model_manager.activate_model(model_id)
+            message = "Model activated"
+        
+        return jsonify({'message': message})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/models/<model_id>/retrain', methods=['POST'])
+def admin_retrain_model(model_id):
+    """Retrain model from admin panel"""
+    try:
+        model = model_manager.get_model(model_id)
+        if not model:
+            return jsonify({'error': 'Model not found'}), 404
+        
+        training_config = {
+            'epochs': model['total_epochs'],
+            'learning_rate': model['learning_rate'],
+            'batch_size': model['batch_size']
+        }
+        
+        thread = threading.Thread(
+            target=train_model_async,
+            args=(model_id, training_config)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({'message': 'Model retraining started'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/backup', methods=['POST'])
+def create_admin_backup():
+    """Create system backup from admin panel"""
+    try:
+        return jsonify({
+            "message": "Backup created successfully",
+            "backup_id": f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "size": "245MB",
+            "created_at": datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/maintenance', methods=['POST'])
+def run_admin_maintenance():
+    """Run system maintenance from admin panel"""
+    try:
+        return jsonify({
+            "message": "Maintenance completed successfully",
+            "tasks_completed": [
+                "Database optimization",
+                "Temporary files cleanup", 
+                "Cache cleared"
+            ]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# =============================================================================
+# PREDICTION ROUTE
+# =============================================================================
+
 @app.route('/predict', methods=['POST'])
 def predict():
     global model
@@ -454,9 +1012,6 @@ def predict():
         # Convert to numpy array
         image_array = np.array(image_data, dtype=np.float32)
         
-        print(f"Received image data - Shape: {image_array.shape}")
-        print(f"Original range - Min: {image_array.min():.3f}, Max: {image_array.max():.3f}, Mean: {image_array.mean():.3f}")
-        
         # Reshape to 28x28 if it's flat (784,)
         if image_array.shape == (784,):
             image_array = image_array.reshape(28, 28)
@@ -464,8 +1019,6 @@ def predict():
         # CRITICAL: MNIST expects white digits on black background
         # Your drawing is black digits on white background, so INVERT it
         image_array = 1.0 - image_array
-        
-        print(f"After inversion - Min: {image_array.min():.3f}, Max: {image_array.max():.3f}, Mean: {image_array.mean():.3f}")
         
         # Check if there's actually a digit drawn
         if image_array.max() < 0.1:  # Mostly blank image
@@ -543,8 +1096,6 @@ def predict():
             # If no variation, use simple scaling
             image_array = (image_array - 0.5) * 2.0
         
-        print(f"After preprocessing - Min: {image_array.min():.3f}, Max: {image_array.max():.3f}, Mean: {image_array.mean():.3f}")
-        
         # Reshape for model prediction
         image_array = image_array.reshape(1, 28, 28, 1)
         
@@ -555,9 +1106,6 @@ def predict():
         
         predicted_digit = np.argmax(predictions[0])
         confidence = float(predictions[0][predicted_digit])
-        
-        print(f"Prediction: {predicted_digit}, Confidence: {confidence:.3f}")
-        print(f"All predictions: {[f'{p:.3f}' for p in predictions[0]]}")
         
         # Increment prediction count for active model
         if active_model_data:
@@ -574,233 +1122,6 @@ def predict():
         print(f"Prediction error: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-# =============================================================================
-# ADMIN ROUTES - Fixed with unique function names
-# =============================================================================
-
-@app.route('/api/admin/users', methods=['GET'])
-def get_admin_users():
-    """Get all users for admin panel"""
-    try:
-        sample_users = [
-            {
-                "id": 1,
-                "name": "Admin User",
-                "email": "admin@digiscrib.com",
-                "role": "admin",
-                "prediction_count": 15420,
-                "last_active": (datetime.now() - timedelta(hours=1)).isoformat(),
-                "is_active": True
-            },
-            {
-                "id": 2,
-                "name": "Test User",
-                "email": "test@digiscrib.com",
-                "role": "user",
-                "prediction_count": 8920,
-                "last_active": (datetime.now() - timedelta(days=1)).isoformat(),
-                "is_active": True
-            }
-        ]
-        return jsonify(sample_users)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/users', methods=['POST'])
-def create_admin_user():
-    """Create user from admin panel"""
-    try:
-        data = request.get_json()
-        new_user = {
-            "id": len(model_manager.get_all_models()) + 100,
-            "name": data.get('name', 'New User'),
-            "email": data.get('email', 'new@example.com'),
-            "role": data.get('role', 'user'),
-            "prediction_count": 0,
-            "last_active": datetime.now().isoformat(),
-            "is_active": True
-        }
-        return jsonify({
-            "id": new_user["id"],
-            "message": "User created successfully",
-            "user": new_user
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/users/<user_id>', methods=['PUT'])
-def update_admin_user(user_id):
-    """Update user from admin panel"""
-    try:
-        data = request.get_json()
-        updated_user = {
-            "id": int(user_id),
-            "name": data.get('name', 'Updated User'),
-            "email": data.get('email', f'user{user_id}@example.com'),
-            "role": data.get('role', 'user'),
-            "status": data.get('status', 'active')
-        }
-        return jsonify({
-            "message": "User updated successfully",
-            "user": updated_user
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/users/<user_id>', methods=['DELETE'])
-def delete_admin_user(user_id):
-    """Delete user from admin panel"""
-    try:
-        return jsonify({
-            "message": f"User {user_id} deleted successfully"
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/settings', methods=['GET'])
-def get_admin_settings():
-    """Get admin settings"""
-    try:
-        settings = {
-            "appName": "DigiScrib",
-            "maxFileSize": 10,
-            "allowRegistrations": True,
-            "confidenceThreshold": 80,
-            "retrainInterval": "weekly", 
-            "sessionTimeout": 30,
-            "maxLoginAttempts": 5,
-            "requireEmailVerification": True,
-            "backupFrequency": "weekly",
-            "retainBackups": 30
-        }
-        return jsonify(settings)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/settings', methods=['POST'])
-def save_admin_settings():
-    """Save admin settings"""
-    try:
-        data = request.get_json()
-        return jsonify({
-            "message": "Settings saved successfully",
-            "settings": data
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/system/health', methods=['GET'])
-def get_admin_system_health():  # Changed name
-    """Get system health information for admin panel"""
-    try:
-        health_data = {
-            "cpu": 45.5, 
-            "memory": 62.3, 
-            "disk": 25.1,
-            "responseTime": 45,
-            "uptime": "99.9%",
-            "errorRate": 0.2,
-            "dbConnections": 24,
-            "dbQueryTime": 12,
-            "dbSize": 245
-        }
-        return jsonify(health_data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/stats', methods=['GET'])
-def get_admin_stats():
-    """Get admin statistics"""
-    try:
-        models = model_manager.get_all_models()
-        total_predictions = sum(model.get('prediction_count', 0) for model in models)
-        
-        accuracies = [model.get('accuracy', 0) for model in models if model.get('accuracy', 0) > 0]
-        avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 95.0
-        
-        stats_data = {
-            "totalUsers": 142,
-            "totalPredictions": total_predictions,
-            "systemAccuracy": round(avg_accuracy, 1),
-            "storageUsed": 12.5
-        }
-        
-        return jsonify(stats_data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/models/<model_id>/toggle', methods=['POST'])
-def toggle_admin_model_status(model_id):  # Changed name
-    """Toggle model active status from admin panel"""
-    try:
-        model = model_manager.get_model(model_id)
-        if not model:
-            return jsonify({'error': 'Model not found'}), 404
-        
-        if model['status'] == 'active':
-            model_manager.activate_model(None)
-            message = "Model deactivated"
-        else:
-            model_manager.activate_model(model_id)
-            message = "Model activated"
-        
-        return jsonify({'message': message})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/models/<model_id>/retrain', methods=['POST'])
-def admin_retrain_model(model_id):
-    """Retrain model from admin panel"""
-    try:
-        model = model_manager.get_model(model_id)
-        if not model:
-            return jsonify({'error': 'Model not found'}), 404
-        
-        training_config = {
-            'epochs': model['total_epochs'],
-            'learning_rate': model['learning_rate'],
-            'batch_size': model['batch_size']
-        }
-        
-        thread = threading.Thread(
-            target=train_model_async,
-            args=(model_id, training_config)
-        )
-        thread.daemon = True
-        thread.start()
-        
-        return jsonify({'message': 'Model retraining started'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/backup', methods=['POST'])
-def create_admin_backup():  # Changed name
-    """Create system backup from admin panel"""
-    try:
-        return jsonify({
-            "message": "Backup created successfully",
-            "backup_id": f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            "size": "245MB",
-            "created_at": datetime.now().isoformat()
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/maintenance', methods=['POST'])
-def run_admin_maintenance():  # Changed name
-    """Run system maintenance from admin panel"""
-    try:
-        return jsonify({
-            "message": "Maintenance completed successfully",
-            "tasks_completed": [
-                "Database optimization",
-                "Temporary files cleanup", 
-                "Cache cleared"
-            ]
-        })
-    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/health', methods=['GET'])

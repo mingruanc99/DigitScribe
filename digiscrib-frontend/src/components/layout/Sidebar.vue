@@ -2,13 +2,19 @@
   <aside class="sidebar" :class="{ collapsed: isCollapsed }">
     <div class="sidebar-header">
       <div class="logo" v-if="!isCollapsed">
-        <h2>DigiScribe</h2>
+        <div class="logo-content">
+          <div class="logo-icon">
+            <img src="/main.png" alt="DigiScribe" class="icon-image"><!-- Add your icon here - you can replace this with an img tag or your actual icon -->
+          </div>
+          <h2>DigiScribe</h2>
+        </div>
       </div>
       <div class="logo-collapsed" v-else>
-        DS
+        <div class="logo-icon-small">
+          <img src="/main.png" alt="DS" class="icon-image-small">
       </div>
     </div>
-    
+    </div>
     <!-- Return to Dashboard Button -->
     <div class="dashboard-return-section">
       <router-link to="/dashboard" class="dashboard-return-btn">
@@ -18,7 +24,7 @@
             <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
         </div>
-        <span class="nav-text">返回控制面板</span>
+        <span class="nav-text">Back to Dashboard</span>
       </router-link>
     </div>
     
@@ -33,7 +39,7 @@
               <path d="M2 2l7.586 7.586"/>
             </svg>
           </div>
-          <span class="nav-text">数字识别</span>
+          <span class="nav-text">Digital Recognition</span>
         </router-link>
         
         <router-link to="/dashboard/models" class="nav-item">
@@ -44,32 +50,11 @@
               <line x1="12" y1="22.08" x2="12" y2="12"/>
             </svg>
           </div>
-          <span class="nav-text">AI模型</span>
+          <span class="nav-text">AI Models</span>
         </router-link>
       </div>
       
-      <div class="nav-section">
-        <div class="nav-label" v-if="!isCollapsed">Analytics</div>
-        <router-link to="/dashboard/analytics" class="nav-item">
-          <div class="nav-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="20" x2="18" y2="10"/>
-              <line x1="12" y1="20" x2="12" y2="4"/>
-              <line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-          </div>
-          <span class="nav-text">性能分析</span>
-        </router-link>
-        
-        <router-link to="/dashboard/feedback" class="nav-item">
-          <div class="nav-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-            </svg>
-          </div>
-          <span class="nav-text">反馈系统</span>
-        </router-link>
-      </div>
+      <!-- Analytics section removed -->
       
       <div class="nav-section">
         <div class="nav-label" v-if="!isCollapsed">Administration</div>
@@ -80,18 +65,28 @@
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
           </div>
-          <span class="nav-text">管理面板</span>
+          <span class="nav-text">Admin Panel</span>
         </router-link>
       </div>
     </nav>
     
     <div class="sidebar-footer">
+      <!-- Dark Mode Toggle Button -->
+      <button class="dark-mode-btn" @click="$emit('toggleDarkMode')">
+        <div class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+        <span class="nav-text">Dark Mode</span>
+      </button>
+      
       <button class="collapse-btn" @click="$emit('toggle')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 18 9 12 15 6" v-if="!isCollapsed"/>
           <polyline points="9 18 15 12 9 6" v-else/>
         </svg>
-        <span v-if="!isCollapsed">收起</span>
+        <span v-if="!isCollapsed">Collapse</span>
       </button>
     </div>
   </aside>
@@ -106,7 +101,7 @@ export default {
       default: false
     }
   },
-  emits: ['toggle']
+  emits: ['toggle', 'toggleDarkMode']
 }
 </script>
 
@@ -132,6 +127,26 @@ export default {
   border-bottom: 1px solid #e2e8f0;
 }
 
+.logo-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 32px;  /* Container size */
+  height: 32px; /* Container size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-image {
+  width: 160px;   /* Make the actual image smaller */
+  height: 160px;  /* Make the actual image smaller */
+  object-fit: contain;
+}
+
 .logo h2 {
   color: #059669;
   font-weight: 700;
@@ -139,19 +154,25 @@ export default {
 }
 
 .logo-collapsed {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #059669, #047857);
-  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
-  margin: 0 auto;
 }
 
+.logo-icon-small {
+  width: 32px;
+  height: 32px;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-image-small {
+  width: 160px;   /* Even smaller for collapsed state */
+  height:160px;  /* Even smaller for collapsed state */
+  object-fit: contain;
+}
 /* Dashboard Return Button Styles */
 .dashboard-return-section {
   padding: 16px 0;
@@ -267,6 +288,28 @@ export default {
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dark-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dark-mode-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 
 .collapse-btn {
@@ -288,10 +331,12 @@ export default {
   color: #334155;
 }
 
+.sidebar.collapsed .dark-mode-btn,
 .sidebar.collapsed .collapse-btn {
   justify-content: center;
 }
 
+.sidebar.collapsed .dark-mode-btn span,
 .sidebar.collapsed .collapse-btn span {
   display: none;
 }

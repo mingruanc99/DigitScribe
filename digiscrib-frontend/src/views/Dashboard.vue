@@ -49,6 +49,8 @@ export default {
   margin-left: 280px;
   transition: margin-left 0.3s ease;
   width: calc(100% - 280px);
+  display: flex;
+  flex-direction: column;
 }
 
 .main-content.sidebar-collapsed {
@@ -58,9 +60,10 @@ export default {
 
 .dashboard-content {
   padding: 24px;
-  min-height: calc(100vh - 70px);
+  min-height: calc(100vh - 70px); /* Account for top navigation height */
   width: 100%;
   max-width: none;
+  flex: 1;
 }
 
 /* Responsive */

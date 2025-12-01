@@ -30,6 +30,13 @@ public class User implements UserDetails {
     @NotBlank
     private String password;
 
+    // ADD THESE MISSING FIELDS:
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name") 
+    private String lastName;
+
     private String role = "USER";
 
     private LocalDateTime createdAt;
@@ -78,7 +85,14 @@ public class User implements UserDetails {
         this.password = password;
     }
 
-    // Getters and Setters
+    // ADD THESE GETTERS AND SETTERS:
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+
+    // Existing getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getUsername() { return username; }

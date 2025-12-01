@@ -33,28 +33,38 @@ public class RecognitionController {
             @AuthenticationPrincipal String username) {
         
         try {
-            User user = userService.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            User user = null;
+            if (username != null && !"anonymousUser".equalsIgnoreCase(username)) {
+                user = userService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            }
             
             // Perform digit recognition
             MNISTRecognitionService.RecognitionResult result = 
                 recognitionService.predictDigit(request.getImageData());
             
             // Save to history
-            RecognitionHistory history = historyService.saveRecognition(
-                user,
-                request.getInputType(),
-                null, // filename for uploads
-                result.getDigit(),
-                result.getConfidence()
-            );
-            
+            RecognitionHistory history = null;
+            if (user != null) {
+                history = historyService.saveRecognition(
+                    user,
+                    request.getInputType(),
+                    null,
+                    result.getDigit(),
+                    result.getConfidence()
+                );
+            }
+
             RecognitionResponse response = new RecognitionResponse(
                 result.getDigit(),
                 result.getConfidence(),
-                history.getId(),
+                history != null ? history.getId() : null,
                 "Recognition successful"
             );
+            response.setConfidenceDistribution(result.getConfidenceDistribution());
+            response.setProcessingTimeMs(result.getProcessingTimeMs());
+            response.setModelUsed(result.getModelUsed());
+            response.setModelId(result.getModelId());
             
             return ResponseEntity.ok(response);
             

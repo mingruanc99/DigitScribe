@@ -140,6 +140,7 @@ export default {
     const router = useRouter()
     const loading = ref(false)
     const showPassword = ref(false)
+    const errorMessage = ref('')
     
     const form = ref({
       fullName: '',
@@ -183,18 +184,81 @@ export default {
     })
 
     const handleRegister = async () => {
-      if (!passwordsMatch.value) return
+      if (!passwordsMatch.value) {
+        errorMessage.value = 'Passwords do not match'
+        return
+      }
       
       loading.value = true
+      errorMessage.value = ''
       
-      // Simulate API call
-      setTimeout(() => {
+      try {
+        // Split full name into first and last name - handle single names
+        const nameParts = form.value.fullName.trim().split(/\s+/)
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'User' // Default if no last name
+        
+        console.log('Name parts:', nameParts)
+        console.log('First name:', firstName)
+        console.log('Last name:', lastName)
+        
+        // Validate that we have at least a first name
+        if (!firstName.trim()) {
+          errorMessage.value = 'Please enter your full name'
+          loading.value = false
+          return
+        }
+        
+        const response = await fetch('http://localhost:8081/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: firstName,
+            lastName: lastName,
+            username: form.value.username,
+            email: form.value.email,
+            password: form.value.password
+          })
+        })
+        
+        console.log('Response status:', response.status)
+        
+        const data = await response.json()
+        console.log('Response data:', data)
+        
+        if (response.ok) {
+          // Registration successful
+          console.log('Registration successful:', data)
+          
+          // Store token if provided
+          if (data.token) {
+            localStorage.setItem('authToken', data.token)
+          }
+          
+          // Redirect to login
+          router.push('/login')
+        } else {
+          // Registration failed - show detailed error
+          if (data.errors) {
+            // Handle validation errors
+            const errors = data.errors.map(err => `${err.field}: ${err.defaultMessage}`).join(', ')
+            errorMessage.value = `Validation errors: ${errors}`
+          } else {
+            errorMessage.value = data.message || `Registration failed (Status: ${response.status})`
+          }
+          console.error('Registration error:', data)
+        }
+      } catch (error) {
+        errorMessage.value = `Network error: ${error.message}`
+        console.error('Network error:', error)
+      } finally {
         loading.value = false
-        router.push('/dashboard')
-      }, 1500)
+      }
     }
-
     const handleWechatRegister = () => {
+      // WeChat registration logic (if implemented)
       loading.value = true
       setTimeout(() => {
         loading.value = false
@@ -206,6 +270,7 @@ export default {
       form,
       loading,
       showPassword,
+      errorMessage,
       passwordStrengthClass,
       passwordStrengthText,
       passwordsMatch,
