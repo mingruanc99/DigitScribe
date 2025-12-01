@@ -1,95 +1,131 @@
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity, View, Text } from 'react-native';
+import { useSettings } from '../../contexts/SettingsContext';
+import DigiScribeLogo from '../../components/DigiScribeLogo';
+
+const TabLabel = ({ icon, label, color, focused, colors }) => (
+  <View style={{ alignItems: 'center', width: 74 }}>
+    <View
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: focused ? colors.accentMuted : colors.surface,
+        borderWidth: 1,
+        borderColor: focused ? colors.accent : colors.border,
+      }}
+    >
+      <Ionicons name={icon} size={18} color={focused ? colors.accent : color} />
+    </View>
+    <Text
+      style={{ color, fontSize: 11, fontWeight: '600', textAlign: 'center', marginTop: 4 }}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+    >
+      {label}
+    </Text>
+  </View>
+);
 
 export default function TabLayout() {
+  const { colors, t } = useSettings();
+
+  const CenterTabButton = (props) => {
+    const focused = props.accessibilityState?.selected;
+    return (
+      <TouchableOpacity
+        {...props}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <View
+          style={{
+            width: 110,
+            height: 110,
+            marginTop: -40,
+            marginBottom: 8,
+            borderRadius: 55,
+            backgroundColor: focused ? colors.accent : colors.surface,
+            borderWidth: 2,
+            borderColor: colors.border,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: colors.shadow,
+            shadowOpacity: 0.25,
+            shadowOffset: { width: 0, height: 8 },
+            shadowRadius: 16,
+            elevation: 10,
+          }}
+        >
+          <DigiScribeLogo size={48} />
+          <Text
+            style={{
+              color: focused ? '#fff' : colors.textPrimary,
+              fontWeight: '700',
+              marginTop: 4,
+            }}
+          >
+            {t('tabs.center')}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
-          borderTopColor: '#e5e5e5',
-          height: 60,
+          height: 90,
+          paddingBottom: 8,
+          paddingHorizontal: 12,
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          marginBottom: 5,
-        },
-        tabBarActiveTintColor: '#000000',
-        tabBarInactiveTintColor: '#999999',
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textSecondary,
         headerStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.surface,
+          borderBottomColor: colors.border,
           borderBottomWidth: 1,
-          borderBottomColor: '#e5e5e5',
         },
-        headerTintColor: '#000000',
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontWeight: '600',
-          fontSize: 18,
         },
       }}
     >
       <Tabs.Screen
+        name="profile"
+        options={{
+          title: t('tabs.profile'),
+          tabBarIcon: ({ color, focused }) => (
+            <TabLabel icon="person" label={t('tabs.profile')} color={color} focused={focused} colors={colors} />
+          ),
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
-          title: 'Write',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <Text style={[styles.icon, { color }]}>✎</Text>
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="collection"
-        options={{
-          title: 'Collections',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <Text style={[styles.icon, { color }]}>📚</Text>
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="user"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <Text style={[styles.icon, { color }]}>👤</Text>
-            </View>
-          ),
+          title: t('tabs.center'),
+          headerShown: false,
+          tabBarButton: (props) => <CenterTabButton {...props} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('tabs.settings'),
           tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <Text style={[styles.icon, { color }]}>⚙️</Text>
-            </View>
+            <TabLabel icon="settings" label={t('tabs.settings')} color={color} focused={focused} colors={colors} />
           ),
+          headerTitle: t('settings.title'),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  iconContainer: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconContainerActive: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    borderRadius: 12,
-  },
-  icon: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

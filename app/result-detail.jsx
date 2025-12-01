@@ -1,205 +1,208 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useSettings } from '../contexts/SettingsContext';
+import SketchPreview from '../components/SketchPreview';
+import StackCard from '../components/StackCard';
 
-export default function ResultDetail() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const [result, setResult] = useState(null);
-
-  useEffect(() => {
-    if (params.result) {
-      setResult(JSON.parse(params.result));
-    }
-  }, [params.result]);
-
-  if (!result) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No result data found</Text>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Recognition Details</Text>
-        <Text style={styles.subtitle}>{result.name || 'Handwriting Sample'}</Text>
-      </View>
-
-      <View style={styles.content}>
-        {/* Handwriting Image */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Original Handwriting</Text>
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: result.image }}
-              style={styles.handwritingImage}
-              resizeMode="contain"
-            />
-          </View>
-        </View>
-
-        {/* Recognition Result */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recognition Result</Text>
-          <View style={styles.resultCard}>
-            <Text style={styles.resultText}>{result.text || result.recognizedText}</Text>
-          </View>
-        </View>
-
-        {/* Performance Metrics */}
-        <View style={styles.metricsContainer}>
-          <View style={styles.metricCard}>
-            <Text style={styles.metricLabel}>Confidence</Text>
-            <Text style={styles.metricValue}>{result.confidence}%</Text>
-          </View>
-
-          <View style={styles.metricCard}>
-            <Text style={styles.metricLabel}>Processing Time</Text>
-            <Text style={styles.metricValue}>{result.recognitionTime || result.processingTime}</Text>
-          </View>
-        </View>
-
-        {/* Additional Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Details</Text>
-          <View style={styles.detailsCard}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date:</Text>
-              <Text style={styles.detailValue}>{result.date}</Text>
-            </View>
-
-            {result.language && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Language:</Text>
-                <Text style={styles.detailValue}>{result.language}</Text>
-              </View>
-            )}
-
-            {result.wordCount && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Words:</Text>
-                <Text style={styles.detailValue}>{result.wordCount}</Text>
-              </View>
-            )}
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>ID:</Text>
-              <Text style={styles.detailValue}>#{result.id}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
-  );
-}
-
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: 24,
     paddingVertical: 24,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: colors.border,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000000',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: colors.textSecondary,
   },
   content: {
     paddingHorizontal: 24,
     paddingVertical: 24,
+    gap: 20,
   },
   section: {
-    marginBottom: 24,
+    gap: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
+    color: colors.textPrimary,
   },
-  imageContainer: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 20,
+  mediaCard: {
     alignItems: 'center',
-    justifyContent: 'center',
   },
   handwritingImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-  },
-  resultCard: {
-    backgroundColor: '#F5F5F5',
+    height: 220,
     borderRadius: 12,
-    padding: 20,
   },
+  resultCard: {},
   resultText: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   metricsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
     gap: 12,
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 16,
     alignItems: 'center',
   },
   metricLabel: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
+    color: colors.textSecondary,
+    fontSize: 12,
   },
   metricValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
   },
   detailsCard: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 20,
+    gap: 10,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
   },
   detailLabel: {
-    fontSize: 14,
-    color: '#666666',
+    color: colors.textSecondary,
   },
   detailValue: {
-    fontSize: 14,
+    color: colors.textPrimary,
     fontWeight: '500',
-    color: '#000000',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
   },
   errorText: {
-    fontSize: 16,
-    color: '#FF0000',
-    textAlign: 'center',
-    marginTop: 50,
+    color: colors.textSecondary,
   },
 });
+
+export default function ResultDetail() {
+  const params = useLocalSearchParams();
+  const { colors, t, language } = useSettings();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const result = useMemo(() => {
+    if (!params?.result) return null;
+    try {
+      return JSON.parse(params.result);
+    } catch (error) {
+      console.warn('Invalid result payload', error);
+      return null;
+    }
+  }, [params?.result]);
+
+  const formatDate = (value) => {
+    if (!value) return '—';
+    try {
+      return new Date(value).toLocaleString(language === 'zh' ? 'zh-CN' : 'en-US');
+    } catch (error) {
+      return value;
+    }
+  };
+
+  if (!result) {
+    return (
+      <View style={[styles.container, styles.errorContainer]}>
+        <Text style={styles.errorText}>{t('resultDetail.error')}</Text>
+      </View>
+    );
+  }
+
+  const hasDrawing = Array.isArray(result.drawingPaths) && result.drawingPaths.length > 0;
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t('resultDetail.title')}</Text>
+        <Text style={styles.subtitle}>{result.name || t('resultDetail.subtitleFallback')}</Text>
+      </View>
+
+      <View style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('resultDetail.original')}</Text>
+          <StackCard style={styles.mediaCard} padding={16}>
+            {hasDrawing ? (
+              <SketchPreview
+                paths={result.drawingPaths}
+                canvasSize={result.canvasSize}
+                borderColor={colors.border}
+                background={colors.surface}
+                stroke={colors.textPrimary}
+                style={{ width: '100%', height: 240 }}
+              />
+            ) : result.image ? (
+              <Image source={{ uri: result.image }} style={styles.handwritingImage} resizeMode="contain" />
+            ) : null}
+          </StackCard>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('resultDetail.recognition')}</Text>
+          <StackCard style={styles.resultCard} padding={20}>
+            <Text style={styles.resultText}>{result.text || result.recognizedText}</Text>
+          </StackCard>
+        </View>
+
+        <View style={[styles.section, styles.metricsContainer]}>
+          <StackCard style={[styles.metricCard, { borderRadius: 18 }]} padding={14}>
+            <Text style={styles.metricLabel}>{t('resultDetail.confidence')}</Text>
+            <Text style={styles.metricValue}>{result.confidence}%</Text>
+          </StackCard>
+          <StackCard style={[styles.metricCard, { borderRadius: 18 }]} padding={14}>
+            <Text style={styles.metricLabel}>{t('resultDetail.latency')}</Text>
+            <Text style={styles.metricValue}>{result.recognitionTime || result.processingTime}</Text>
+          </StackCard>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('resultDetail.details')}</Text>
+          <StackCard style={styles.detailsCard} padding={16}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t('home.sequenceTitle')}:</Text>
+              <Text style={styles.detailValue}>{result.sequence || '—'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t('resultDetail.language')}:</Text>
+              <Text style={styles.detailValue}>{result.language || 'Digits'}</Text>
+            </View>
+            {result.wordCount ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('resultDetail.words')}:</Text>
+                <Text style={styles.detailValue}>{result.wordCount}</Text>
+              </View>
+            ) : null}
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t('resultDetail.idLabel')}:</Text>
+              <Text style={styles.detailValue}>#{result.id || '—'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t('resultDetail.dateLabel')}:</Text>
+              <Text style={styles.detailValue}>{formatDate(result.timestamp || result.date)}</Text>
+            </View>
+          </StackCard>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}

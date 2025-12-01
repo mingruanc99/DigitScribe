@@ -5,7 +5,7 @@ const DigiScribeLogo = ({ size = 80 }) => {
   return (
     <View style={[styles.container, { width: size, height: size }]} testID="digiscribe-logo">
       <Image
-        source={require('../../assets/images/favicon.png')}
+        source={require('../assets/images/favicon.png')}
         style={styles.image}
         resizeMode="contain"
         testID="logo-image"

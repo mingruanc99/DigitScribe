@@ -1,90 +1,74 @@
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { AppProvider, useApp } from "./contexts/AppContext";
-import { View, ActivityIndicator } from "react-native";
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { AuthProvider } from '../contexts/AuthContext';
+import { SettingsProvider, useSettings } from '../contexts/SettingsContext';
+import { HistoryProvider } from '../contexts/HistoryContext';
 
-// Loading component while preferences load
-function LoadingScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
-      <ActivityIndicator size="large" color="#000000" />
-    </View>
-  );
-}
-
-// Main layout component that uses the app context
-function RootLayoutContent() {
-  const { isDarkMode, isLoading, t } = useApp();
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
+const LayoutStack = () => {
+  const { colors, isDark, t } = useSettings();
   return (
     <>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: isDarkMode ? '#000000' : '#ffffff',
+            backgroundColor: colors.surface,
             borderBottomWidth: 1,
-            borderBottomColor: isDarkMode ? '#333333' : '#e5e5e5',
+            borderBottomColor: colors.border,
           },
-          headerTintColor: isDarkMode ? '#ffffff' : '#000000',
+          headerTintColor: colors.textPrimary,
           headerTitleStyle: {
             fontWeight: '600',
             fontSize: 18,
           },
           contentStyle: {
-            backgroundColor: isDarkMode ? '#000000' : '#ffffff',
+            backgroundColor: colors.background,
           },
         }}
       >
-        <Stack.Screen
-          name="index"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{ headerShown: false }}
-        />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="result"
           options={{
-            title: t('recognitionResult'),
-            presentation: 'card'
+            title: t('result.title'),
+            presentation: 'card',
           }}
         />
         <Stack.Screen
           name="database"
           options={{
-            title: 'Database',
-            presentation: 'card'
+            title: t('database.title'),
+            presentation: 'card',
           }}
         />
         <Stack.Screen
           name="about"
           options={{
-            title: t('aboutTeam'),
-            presentation: 'card'
+            title: t('about.title'),
+            presentation: 'card',
           }}
         />
         <Stack.Screen
           name="result-detail"
           options={{
-            title: t('resultDetails'),
-            presentation: 'card'
+            title: t('resultDetail.title'),
+            presentation: 'card',
           }}
         />
       </Stack>
     </>
   );
-}
+};
 
 export default function RootLayout() {
   return (
-    <AppProvider>
-      <RootLayoutContent />
-    </AppProvider>
+    <SettingsProvider>
+      <AuthProvider>
+        <HistoryProvider>
+          <LayoutStack />
+        </HistoryProvider>
+      </AuthProvider>
+    </SettingsProvider>
   );
 }
