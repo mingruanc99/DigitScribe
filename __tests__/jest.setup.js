@@ -1,27 +1,40 @@
-// Mock AsyncStorage for all tests
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  setItem: jest.fn(() => Promise.resolve()),
-  getItem: jest.fn(() => Promise.resolve(null)),
-  removeItem: jest.fn(() => Promise.resolve()),
-  mergeItem: jest.fn(() => Promise.resolve()),
-  clear: jest.fn(() => Promise.resolve()),
-  getAllKeys: jest.fn(() => Promise.resolve([])),
-  multiGet: jest.fn(() => Promise.resolve([])),
-  multiSet: jest.fn(() => Promise.resolve()),
-  multiRemove: jest.fn(() => Promise.resolve()),
-  multiMerge: jest.fn(() => Promise.resolve()),
-}));
+// Mock AsyncStorage for all tests - use factory function to avoid variable hoisting
+jest.mock('@react-native-async-storage/async-storage', () => {
+  return {
+    __esModule: true,
+    default: {
+      setItem: jest.fn(() => Promise.resolve()),
+      getItem: jest.fn(() => Promise.resolve(null)),
+      removeItem: jest.fn(() => Promise.resolve()),
+      mergeItem: jest.fn(() => Promise.resolve()),
+      clear: jest.fn(() => Promise.resolve()),
+      getAllKeys: jest.fn(() => Promise.resolve([])),
+      multiGet: jest.fn(() => Promise.resolve([])),
+      multiSet: jest.fn(() => Promise.resolve()),
+      multiRemove: jest.fn(() => Promise.resolve()),
+      multiMerge: jest.fn(() => Promise.resolve()),
+    },
+  };
+});
 
 // Mock expo-router
-jest.mock('expo-router', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    back: jest.fn(),
-  }),
-  useLocalSearchParams: jest.fn(() => ({})),
-  useFocusEffect: jest.fn(),
-}));
+jest.mock('expo-router', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    useRouter: () => ({
+      push: jest.fn(),
+      replace: jest.fn(),
+      back: jest.fn(),
+      isReady: true,
+    }),
+    useLocalSearchParams: jest.fn(() => ({})),
+    useFocusEffect: jest.fn(),
+    useSegments: jest.fn(() => []),
+    Stack: ({ children }) => React.createElement('Stack', null, children),
+    Link: ({ children }) => React.createElement('Link', null, children),
+  };
+});
 
 // Mock Alert
 jest.mock('react-native/Libraries/Alert/Alert', () => ({
@@ -30,6 +43,17 @@ jest.mock('react-native/Libraries/Alert/Alert', () => ({
 
 // Mock static assets (images, etc.)
 jest.mock('../assets/images/favicon.png', () => 'mock-image-source');
+
+// Mock react-native-css-interop
+jest.mock('react-native-css-interop', () => {
+  return {
+    __esModule: true,
+    default: {
+      interop: () => ({}),
+      useInteropValue: () => ({}),
+    },
+  };
+});
 
 // Mock react-native-svg with simple string mocks
 jest.mock('react-native-svg', () => ({

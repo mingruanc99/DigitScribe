@@ -366,7 +366,6 @@ export default function Home() {
       if (!silent) {
         Alert.alert('Recognition failed', error.message || 'Unable to predict digit.');
       }
-      console.error('Recognition error', error);
     } finally {
       setIsRecognizing(false);
     }

@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import SettingsScreen from '../app/(tabs)/settings';
-import { AuthProvider } from '../app/contexts/AuthContext';
-import { SettingsProvider } from '../app/contexts/SettingsContext';
-import { HistoryProvider } from '../app/contexts/HistoryContext';
+import { AuthProvider } from '../contexts/AuthContext';
+import { SettingsProvider } from '../contexts/SettingsContext';
+import { HistoryProvider } from '../contexts/HistoryContext';
 
 // Mock expo-router
 jest.mock('expo-router', () => ({
@@ -25,7 +25,7 @@ jest.mock('react-native', () => {
 });
 
 // Mock services
-jest.mock('../app/services/SpringBootService.js', () => ({
+jest.mock('../services/SpringBootService.js', () => ({
   getServerStatus: jest.fn(() => Promise.resolve({
     healthy: true,
     springBoot: { healthy: true },

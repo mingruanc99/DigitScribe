@@ -1,28 +1,10 @@
-/**
- * Flask Server Connection Template
- *
- * This service provides methods to connect to a Python Flask backend
- * for handwriting recognition processing.
- * Configure with your server's IP address and port.
- */
-
-// Configuration - Replace with your server's IP address and port
-const SERVER_CONFIG = {
-  // Example: 'http://192.168.1.100:8000/api'
-  // Example: 'http://10.0.0.5:8000/api'
-  // Example: 'http://localhost:8000/api' (for local testing)
-  baseURL: 'http://10.62.223.160:5000/api', // Change this to your server's IP
-
-  // Alternative: Use environment variables for security
-  // baseURL: process.env.FLASK_SERVER_URL || 'http://localhost:8000/api',
-};
-
-const FLASK_BASE_URL = SERVER_CONFIG.baseURL;
+import { ACTIVE_CONFIG } from '../config/serverConfig';
+import { resolveUrl, DEFAULT_TIMEOUT } from './ServiceUtils';
 
 class FlaskService {
   constructor() {
-    this.baseURL = FLASK_BASE_URL;
-    this.timeout = 30000; // 30 seconds
+    this.baseURL = resolveUrl('FLASK_SERVER_URL', ACTIVE_CONFIG.flask, 'http://localhost:8000/api');
+    this.timeout = DEFAULT_TIMEOUT;
   }
 
   /**
@@ -65,7 +47,6 @@ class FlaskService {
         data: result,
       };
     } catch (error) {
-      console.error('Flask recognition error:', error);
       return {
         success: false,
         error: error.message,
@@ -106,7 +87,6 @@ class FlaskService {
 
       return await response.json();
     } catch (error) {
-      console.error('Flask image processing error:', error);
       throw error;
     }
   }
@@ -140,7 +120,6 @@ class FlaskService {
 
       return await response.json();
     } catch (error) {
-      console.error('Flask training error:', error);
       throw error;
     }
   }
@@ -169,7 +148,6 @@ class FlaskService {
 
       return await response.json();
     } catch (error) {
-      console.error('Flask batch prediction error:', error);
       throw error;
     }
   }
@@ -193,7 +171,6 @@ class FlaskService {
 
       return await response.json();
     } catch (error) {
-      console.error('Flask model info error:', error);
       throw error;
     }
   }
@@ -219,7 +196,6 @@ class FlaskService {
 
       return await response.json();
     } catch (error) {
-      console.error('Flask MNIST samples error:', error);
       throw error;
     }
   }
@@ -243,7 +219,6 @@ class FlaskService {
 
       return await response.json();
     } catch (error) {
-      console.error('Flask metrics error:', error);
       throw error;
     }
   }
@@ -265,7 +240,6 @@ class FlaskService {
 
       return { status: 'healthy', code: 200 };
     } catch (error) {
-      console.error('Flask health check error:', error);
       return { status: 'error', error: error.message };
     }
   }
@@ -294,7 +268,6 @@ class FlaskService {
 
       return await response.json();
     } catch (error) {
-      console.error('Flask model export error:', error);
       throw error;
     }
   }

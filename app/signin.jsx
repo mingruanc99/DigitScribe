@@ -103,8 +103,6 @@ export default function SignIn() {
 
   const [mode, setMode] = useState(params?.mode === 'register' ? 'register' : 'login');
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -118,22 +116,14 @@ export default function SignIn() {
       Alert.alert(t('auth.missingUsername'));
       return;
     }
-    if (!password.trim()) {
-      Alert.alert(t('auth.missingPassword'));
-      return;
-    }
-    if (mode === 'register' && !email.trim()) {
-      Alert.alert(t('auth.missingEmail'));
-      return;
-    }
 
     setSubmitting(true);
 
     try {
       if (mode === 'login') {
-        await login({ username, password });
+        await login(username);
       } else {
-        await register({ username, email, password });
+        await register({ username });
       }
       router.replace('/(tabs)');
     } catch (error) {
@@ -174,29 +164,7 @@ export default function SignIn() {
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
-          />
-        </View>
-
-        {mode === 'register' ? (
-          <View>
-            <Text style={styles.inputLabel}>{t('auth.email')}</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </View>
-        ) : null}
-
-        <View>
-          <Text style={styles.inputLabel}>{t('auth.password')}</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
+            placeholder="Enter username"
           />
         </View>
 
@@ -205,7 +173,7 @@ export default function SignIn() {
           onPress={handleAuth}
           disabled={submitting}
         >
-          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>{t('auth.submit')}</Text>}
+          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>{mode === 'login' ? t('auth.login') : t('auth.register')}</Text>}
         </TouchableOpacity>
       </StackCard>
 

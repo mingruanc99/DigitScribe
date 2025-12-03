@@ -5,7 +5,15 @@ import { SettingsProvider, useSettings } from '../contexts/SettingsContext';
 import { HistoryProvider } from '../contexts/HistoryContext';
 
 const LayoutStack = () => {
-  const { colors, isDark, t } = useSettings();
+  const settings = useSettings();
+
+  // Add null check
+  if (!settings) {
+    return null; // Or a loading spinner
+  }
+
+  const { colors, isDark, t } = settings;
+
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />

@@ -1,15 +1,14 @@
-import React, { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { View, StyleSheet, PanResponder, Dimensions, Platform } from 'react-native';
+import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { View, StyleSheet, PanResponder, Dimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-//import { captureRef } from 'react-native-view-shot';
+import { captureRef } from 'react-native-view-shot';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 
 const HandwritingCanvas = forwardRef(({
   onStrokeStart,
   onStrokeMove,
   onStrokeEnd,
-  onCanvasReady,
   style
 }, ref) => {
   const [paths, setPaths] = useState([]);
@@ -17,7 +16,6 @@ const HandwritingCanvas = forwardRef(({
   const canvasRef = useRef(null);
   const pathRef = useRef('');
 
-  // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
     clearCanvas: () => {
       setPaths([]);
@@ -30,27 +28,18 @@ const HandwritingCanvas = forwardRef(({
         canvasSize: { width: screenWidth - 32, height: 300 }
       };
     },
-    // captureCanvas: async (options = {}) => {
-    //   try {
-    //     const uri = await captureRef(canvasRef, {
-    //       format: 'png',
-    //       quality: 0.9,
-    //       result: 'tmpfile',
-    //       ...options
-    //     });
-    //     return { success: true, uri };
-    //   } catch (error) {
-    //     console.error('Screenshot capture error:', error);
-    //     return { success: false, error: error.message };
-    //   }
-    // }
-  }));
-
-  useEffect(() => {
-    if (onCanvasReady) {
-      onCanvasReady();
+    getBase64Image: async () => {
+      try {
+        return await captureRef(canvasRef, {
+          format: 'png',
+          quality: 0.9,
+          result: 'base64'
+        });
+      } catch (error) {
+        return null;
+      }
     }
-  }, []);
+  }));
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,

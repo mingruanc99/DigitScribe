@@ -7,38 +7,17 @@
  */
 
 // Configuration - Replace with your server's IP address and port
-import { Platform } from 'react-native';
 import { ACTIVE_CONFIG } from '../config/serverConfig';
-
-const normalizeHostForPlatform = (url) => {
-  let normalized = url;
-  if (Platform.OS === 'android' && normalized.includes('localhost')) {
-    normalized = normalized.replace('localhost', '10.0.2.2');
-  }
-  if (Platform.OS === 'web') {
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    if (normalized.includes('10.0.2.2')) {
-      normalized = normalized.replace('10.0.2.2', hostname);
-    }
-    if (normalized.includes('localhost')) {
-      normalized = normalized.replace('localhost', hostname);
-    }
-  }
-  return normalized;
-};
-
-const SPRING_BOOT_BASE_URL =
-  process.env.EXPO_PUBLIC_SPRING_BOOT_URL ||
-  ACTIVE_CONFIG.springBoot ||
-  'http://192.168.56.1:8080/api';
-
-const normalizeBaseUrl = (url) => normalizeHostForPlatform(url.replace(/\/+$/, ''));
+import {
+  resolveUrl,
+  DEFAULT_TIMEOUT,
+} from './ServiceUtils';
 
 class SpringBootService {
   constructor() {
-    this.baseURL = normalizeBaseUrl(SPRING_BOOT_BASE_URL);
+    this.baseURL = resolveUrl('EXPO_PUBLIC_SPRING_BOOT_URL', ACTIVE_CONFIG.springBoot, 'http://192.168.56.1:8080/api');
     this.rootURL = this.baseURL.replace(/\/api$/, '');
-    this.timeout = 30000; // 30 seconds
+    this.timeout = DEFAULT_TIMEOUT;
   }
 
   /**
@@ -90,7 +69,7 @@ class SpringBootService {
             screenHeight: handwritingData.canvasSize?.height,
           }
         }),
-        timeout: this.timeout,
+        signal: (new AbortController()).signal,
       });
 
       if (!response.ok) {
