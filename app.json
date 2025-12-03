@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Digit-app",
-    "slug": "Digit-app",
+    "slug": "digitscribe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -46,7 +46,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "165dd549-44b8-438e-b965-ab565a8fcd35"
+        "projectId": "f41dcb31-569c-49e9-8779-688ea8037baf"
       }
     },
     "owner": "chickpeayumyum"
