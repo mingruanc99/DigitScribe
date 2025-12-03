@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AsyncStorage } from 'react-native';
 import authService from '../services/AuthService.js';
 
 const STORAGE_KEY = '@digiscribe/auth-session';
